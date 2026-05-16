@@ -1,0 +1,63 @@
+{
+  "bot_name": "WorldCup Bet 2026 Jingcai Assistant",
+  "version": "0.1.0",
+  "timezone": "Asia/Shanghai",
+  "features": {
+    "ai_analysis": false,
+    "telegram_alerts": false,
+    "description": "The --ai flag only generates an OpenClaw analysis pack. Python does not call any model."
+  },
+  "data": {
+    "matches_file": "data/jingcai_matches.csv",
+    "fallback_matches_file": "data/worldcup_2026_schedule.json",
+    "teams_file": "data/teams.json",
+    "reports_dir": "data/reports",
+    "recommendations_file": "data/recommendations.json",
+    "final_markdown_file": "data/final_recommendations.md",
+    "final_json_file": "data/final_recommendations.json",
+    "final_archive_dir": "data/final_reports",
+    "final_archive_index": "data/final_reports/index.json",
+    "odds_snapshot_file": "data/odds_snapshot.json",
+    "odds_movements_file": "data/odds_movements.json",
+    "match_results_file": "data/match_results.csv",
+    "settlement_markdown_file": "data/settlement_report.md",
+    "settlement_json_file": "data/settlement_report.json"
+  },
+  "plays": {
+    "spf": true,
+    "rqspf": true,
+    "jqs": true,
+    "parlay": true
+  },
+  "strategy": {
+    "default_lookahead_days": 45,
+    "max_matches_per_report": 12,
+    "confidence_threshold": 0.56,
+    "strong_confidence": 0.68,
+    "max_backup_picks": 1,
+    "max_parlay_matches": 4,
+    "parlay_min_confidence": 0.62,
+    "home_advantage": 0.035,
+    "rating_scale": 18.0,
+    "draw_base": 0.27,
+    "draw_close_rating_bonus": 0.08,
+    "handicap_confidence_penalty": 0.08
+  },
+  "risk": {
+    "style": "aggressive",
+    "prefer_safe_backup": true,
+    "avoid_low_confidence_parlay": false,
+    "description": "aggressive means prioritizing high-odds value opportunities with higher risk and drawdown."
+  },
+  "odds_tracking": {
+    "enabled": true,
+    "absolute_threshold": 0.05,
+    "percent_threshold": 0.03,
+    "description": "Track odds movement between runs so OpenClaw can refresh the candidate pool."
+  },
+  "alerts": {
+    "telegram_enabled": false,
+    "telegram_bot_token_env": "TELEGRAM_BOT_TOKEN",
+    "telegram_chat_id_env": "TELEGRAM_CHAT_ID"
+  }
+}

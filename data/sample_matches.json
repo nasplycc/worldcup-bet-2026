@@ -1,0 +1,87 @@
+[
+  {
+    "match_id": "sample-2026-001",
+    "competition": "2026 World Cup",
+    "stage": "group",
+    "kickoff_time": "2026-06-12T08:00:00+08:00",
+    "home_team": "墨西哥",
+    "away_team": "南非",
+    "neutral_ground": false,
+    "home_rating": 82,
+    "away_rating": 74,
+    "notes": ["样例数据，用于测试输出格式", "东道主因素偏向主队"],
+    "odds": {
+      "spf": {"3": 1.72, "1": 3.45, "0": 5.2},
+      "rqspf": {"handicap": -1, "3": 3.1, "1": 3.4, "0": 1.93},
+      "jqs": {"0": 12.0, "1": 4.8, "2": 3.35, "3": 3.75, "4": 5.4, "5": 8.5, "6": 15.0, "7+": 22.0}
+    }
+  },
+  {
+    "match_id": "sample-2026-002",
+    "competition": "2026 World Cup",
+    "stage": "group",
+    "kickoff_time": "2026-06-13T03:00:00+08:00",
+    "home_team": "法国",
+    "away_team": "丹麦",
+    "neutral_ground": true,
+    "home_rating": 91,
+    "away_rating": 84,
+    "notes": ["样例数据，用于测试输出格式", "强队优势明显，但小组赛需防平"],
+    "odds": {
+      "spf": {"3": 1.88, "1": 3.25, "0": 4.35},
+      "rqspf": {"handicap": -1, "3": 3.75, "1": 3.35, "0": 1.78},
+      "jqs": {"0": 9.5, "1": 4.2, "2": 3.25, "3": 3.55, "4": 5.1, "5": 9.0, "6": 17.0, "7+": 28.0}
+    }
+  },
+  {
+    "match_id": "sample-2026-003",
+    "competition": "2026 World Cup",
+    "stage": "group",
+    "kickoff_time": "2026-06-14T06:00:00+08:00",
+    "home_team": "巴西",
+    "away_team": "塞尔维亚",
+    "neutral_ground": true,
+    "home_rating": 92,
+    "away_rating": 81,
+    "notes": ["样例数据，用于测试输出格式", "巴西进攻端上限高"],
+    "odds": {
+      "spf": {"3": 1.58, "1": 3.9, "0": 6.2},
+      "rqspf": {"handicap": -1, "3": 2.65, "1": 3.45, "0": 2.25},
+      "jqs": {"0": 13.0, "1": 5.0, "2": 3.6, "3": 3.4, "4": 4.7, "5": 7.8, "6": 13.5, "7+": 20.0}
+    }
+  },
+  {
+    "match_id": "sample-2026-004",
+    "competition": "2026 World Cup",
+    "stage": "group",
+    "kickoff_time": "2026-06-15T00:00:00+08:00",
+    "home_team": "日本",
+    "away_team": "克罗地亚",
+    "neutral_ground": true,
+    "home_rating": 80,
+    "away_rating": 83,
+    "notes": ["样例数据，用于测试输出格式", "实力接近，平局权重较高"],
+    "odds": {
+      "spf": {"3": 3.0, "1": 3.05, "0": 2.42},
+      "rqspf": {"handicap": 1, "3": 1.55, "1": 3.85, "0": 4.8},
+      "jqs": {"0": 8.0, "1": 3.65, "2": 3.0, "3": 4.0, "4": 6.2, "5": 11.0, "6": 21.0, "7+": 34.0}
+    }
+  },
+  {
+    "match_id": "sample-2026-005",
+    "competition": "2026 World Cup",
+    "stage": "group",
+    "kickoff_time": "2026-06-16T03:00:00+08:00",
+    "home_team": "阿根廷",
+    "away_team": "美国",
+    "neutral_ground": false,
+    "home_rating": 90,
+    "away_rating": 79,
+    "notes": ["样例数据，用于测试输出格式", "客队有东道主氛围加成"],
+    "odds": {
+      "spf": {"3": 1.66, "1": 3.7, "0": 5.5},
+      "rqspf": {"handicap": -1, "3": 2.95, "1": 3.35, "0": 2.05},
+      "jqs": {"0": 12.5, "1": 4.9, "2": 3.45, "3": 3.55, "4": 4.95, "5": 8.2, "6": 14.0, "7+": 22.0}
+    }
+  }
+]

@@ -1,0 +1,783 @@
+{
+  "mode": "upcoming",
+  "days": 60,
+  "plays": [
+    "jqs",
+    "rqspf",
+    "spf"
+  ],
+  "matches_analyzed": 2,
+  "source_file": "data/jingcai_matches.csv",
+  "used_fallback_source": false,
+  "odds_movement": {
+    "generated_at": "2026-05-14T17:03:02.875646+00:00",
+    "absolute_threshold": 0.05,
+    "percent_threshold": 0.03,
+    "changes": []
+  },
+  "recommendations": [
+    {
+      "match_id": "jc-2026-001",
+      "competition": "2026 World Cup",
+      "stage": "group",
+      "kickoff_time": "2026-06-12T08:00:00+08:00",
+      "home_team": "墨西哥",
+      "away_team": "南非",
+      "home_team_code": "",
+      "away_team_code": "",
+      "home_profile": {
+        "name": "Mexico",
+        "code": "MEX",
+        "aliases": [
+          "墨西哥"
+        ],
+        "tier": "solid",
+        "fifa_rank_estimate": 15,
+        "elo_estimate": 1870,
+        "attack": 76,
+        "defense": 77,
+        "tournament_experience": 86,
+        "squad_depth": 76,
+        "upset_potential": 57,
+        "volatility": 45,
+        "tags": [
+          "host",
+          "experienced",
+          "public_team"
+        ],
+        "notes": "Host status helps; pressure and public money can distort odds."
+      },
+      "away_profile": {
+        "name": "South Africa",
+        "code": "RSA",
+        "aliases": [
+          "南非"
+        ],
+        "tier": "underdog",
+        "fifa_rank_estimate": 58,
+        "elo_estimate": 1665,
+        "attack": 66,
+        "defense": 68,
+        "tournament_experience": 55,
+        "squad_depth": 58,
+        "upset_potential": 50,
+        "volatility": 52,
+        "tags": [
+          "underdog",
+          "africa"
+        ],
+        "notes": "Underdog profile; check defensive injuries and travel context."
+      },
+      "venue": "",
+      "city": "",
+      "group": "",
+      "odds_available": true,
+      "notes": [
+        "示例CSV",
+        "复制为 data/jingcai_matches.csv 后可作为真实数据入口"
+      ],
+      "recommendations": [
+        {
+          "play": "胜平负",
+          "picks": [
+            "3"
+          ],
+          "backup": [],
+          "confidence": 0.781,
+          "risk_level": "低",
+          "reason": "主胜概率最高；模型与赔率综合概率约 48%，决策评分 78%。",
+          "odds": {
+            "3": 1.72,
+            "1": 3.45,
+            "0": 5.2
+          }
+        },
+        {
+          "play": "让球胜平负",
+          "picks": [
+            "1"
+          ],
+          "backup": [
+            "0"
+          ],
+          "confidence": 0.603,
+          "risk_level": "中",
+          "reason": "让球为主队 -1，综合后倾向 平。 可防 主负。",
+          "odds": {
+            "handicap": -1,
+            "3": 3.1,
+            "1": 3.4,
+            "0": 1.93
+          }
+        },
+        {
+          "play": "总进球",
+          "picks": [
+            "2"
+          ],
+          "backup": [
+            "3"
+          ],
+          "confidence": 0.535,
+          "risk_level": "高",
+          "reason": "总进球赔率重心在 2 球。 备选 3 球。",
+          "odds": {
+            "0": 12.0,
+            "1": 4.8,
+            "2": 3.35,
+            "3": 3.75,
+            "4": 5.4,
+            "5": 8.5,
+            "6": 15.0,
+            "7+": 22.0
+          }
+        }
+      ],
+      "best_pick": {
+        "play": "胜平负",
+        "picks": [
+          "3"
+        ],
+        "backup": [],
+        "confidence": 0.781,
+        "risk_level": "低",
+        "reason": "主胜概率最高；模型与赔率综合概率约 48%，决策评分 78%。",
+        "odds": {
+          "3": 1.72,
+          "1": 3.45,
+          "0": 5.2
+        }
+      },
+      "odds_movement": {
+        "status": "unchanged",
+        "summary": "赔率暂无变化",
+        "changes": [],
+        "significant_changes": []
+      },
+      "openclaw_analysis": {
+        "status": "ready_for_openclaw_analysis",
+        "instruction": "请 OpenClaw 使用自身模型和联网能力，结合球队实力、伤停、阵容、赛程、新闻、赔率回报、让球盘和冷门概率，评估这些候选投注。目标是寻找高风险高收益的价值机会，不是保守稳胆。候选池不是静态结论，若临场信息触发刷新条件，必须重新排序或剔除候选。",
+        "risk_style": "aggressive",
+        "candidate_bets": [
+          {
+            "play": "总进球",
+            "pick": "3",
+            "odds": 3.75,
+            "candidate_score": 70.003,
+            "score_breakdown": {
+              "payout": 35.855,
+              "confidence": 12.84,
+              "matchup_fit": 16.708,
+              "upset_value": 4.6,
+              "risk_penalty": 0.0
+            },
+            "strategy_tags": [
+              "高赔",
+              "进球数",
+              "中高进球",
+              "host",
+              "experienced",
+              "underdog"
+            ],
+            "rule_confidence": 0.535,
+            "rule_reason": "总进球赔率重心在 2 球。 备选 3 球。",
+            "risk_hint": "高赔率方向波动大，适合小注搏回报；若赛前伤停、首发或赔率明显反向变化，应重新筛选候选池。"
+          },
+          {
+            "play": "总进球",
+            "pick": "2",
+            "odds": 3.35,
+            "candidate_score": 65.157,
+            "score_breakdown": {
+              "payout": 32.609,
+              "confidence": 12.84,
+              "matchup_fit": 16.708,
+              "upset_value": 3.0,
+              "risk_penalty": 0.0
+            },
+            "strategy_tags": [
+              "高赔",
+              "进球数",
+              "host",
+              "experienced",
+              "underdog",
+              "africa"
+            ],
+            "rule_confidence": 0.535,
+            "rule_reason": "总进球赔率重心在 2 球。 备选 3 球。",
+            "risk_hint": "高赔率方向波动大，适合小注搏回报；若赛前伤停、首发或赔率明显反向变化，应重新筛选候选池。"
+          },
+          {
+            "play": "让球胜平负",
+            "pick": "1",
+            "odds": 3.4,
+            "candidate_score": 60.595,
+            "score_breakdown": {
+              "payout": 33.014,
+              "confidence": 14.472,
+              "matchup_fit": 9.909,
+              "upset_value": 3.2,
+              "risk_penalty": 0.0
+            },
+            "strategy_tags": [
+              "高赔",
+              "让球平",
+              "强队小胜",
+              "host",
+              "experienced",
+              "underdog"
+            ],
+            "rule_confidence": 0.603,
+            "rule_reason": "让球为主队 -1，综合后倾向 平。 可防 主负。",
+            "risk_hint": "高赔率方向波动大，适合小注搏回报；若赛前伤停、首发或赔率明显反向变化，应重新筛选候选池。"
+          },
+          {
+            "play": "胜平负",
+            "pick": "3",
+            "odds": 1.72,
+            "candidate_score": 57.207,
+            "score_breakdown": {
+              "payout": 19.38,
+              "confidence": 18.744,
+              "matchup_fit": 19.083,
+              "upset_value": 0.0,
+              "risk_penalty": 0.0
+            },
+            "strategy_tags": [
+              "host",
+              "experienced",
+              "underdog",
+              "africa"
+            ],
+            "rule_confidence": 0.781,
+            "rule_reason": "主胜概率最高；模型与赔率综合概率约 48%，决策评分 78%。",
+            "risk_hint": "高赔率方向波动大，适合小注搏回报；若赛前伤停、首发或赔率明显反向变化，应重新筛选候选池。"
+          },
+          {
+            "play": "让球胜平负",
+            "pick": "0",
+            "odds": 1.93,
+            "candidate_score": 39.556,
+            "score_breakdown": {
+              "payout": 21.084,
+              "confidence": 14.472,
+              "matchup_fit": 4,
+              "upset_value": 0,
+              "risk_penalty": 0.0
+            },
+            "strategy_tags": [
+              "受让方向",
+              "host",
+              "experienced",
+              "underdog",
+              "africa"
+            ],
+            "rule_confidence": 0.603,
+            "rule_reason": "让球为主队 -1，综合后倾向 平。 可防 主负。",
+            "risk_hint": "高赔率方向波动大，适合小注搏回报；若赛前伤停、首发或赔率明显反向变化，应重新筛选候选池。"
+          }
+        ],
+        "team_profiles": {
+          "home": {
+            "name": "Mexico",
+            "code": "MEX",
+            "aliases": [
+              "墨西哥"
+            ],
+            "tier": "solid",
+            "fifa_rank_estimate": 15,
+            "elo_estimate": 1870,
+            "attack": 76,
+            "defense": 77,
+            "tournament_experience": 86,
+            "squad_depth": 76,
+            "upset_potential": 57,
+            "volatility": 45,
+            "tags": [
+              "host",
+              "experienced",
+              "public_team"
+            ],
+            "notes": "Host status helps; pressure and public money can distort odds."
+          },
+          "away": {
+            "name": "South Africa",
+            "code": "RSA",
+            "aliases": [
+              "南非"
+            ],
+            "tier": "underdog",
+            "fifa_rank_estimate": 58,
+            "elo_estimate": 1665,
+            "attack": 66,
+            "defense": 68,
+            "tournament_experience": 55,
+            "squad_depth": 58,
+            "upset_potential": 50,
+            "volatility": 52,
+            "tags": [
+              "underdog",
+              "africa"
+            ],
+            "notes": "Underdog profile; check defensive injuries and travel context."
+          },
+          "edge_summary": {
+            "home_tier": "solid",
+            "away_tier": "underdog",
+            "edge_home_minus_away": {
+              "attack": 10,
+              "defense": 9,
+              "tournament_experience": 31,
+              "squad_depth": 18,
+              "upset_potential": 7,
+              "volatility": -7
+            },
+            "home_tags": [
+              "host",
+              "experienced",
+              "public_team"
+            ],
+            "away_tags": [
+              "underdog",
+              "africa"
+            ]
+          }
+        },
+        "search_queries": [
+          "墨西哥 vs 南非 World Cup 2026 preview",
+          "墨西哥 injury news World Cup 2026",
+          "南非 injury news World Cup 2026",
+          "墨西哥 predicted lineup World Cup 2026",
+          "南非 predicted lineup World Cup 2026",
+          "墨西哥 vs 南非 team news",
+          "墨西哥 vs 南非 tactical preview"
+        ],
+        "candidate_pool_policy": {
+          "refresh_required": true,
+          "refresh_triggers": [
+            "竞彩官方赔率或让球数变化",
+            "赛前首发阵容确认",
+            "关键球员伤停、停赛或临场缺阵",
+            "小组积分和出线形势变化",
+            "天气、场地、旅行距离出现明显不利信息",
+            "距离开赛 24 小时、6 小时、1 小时的例行刷新"
+          ],
+          "adjustment_rules": [
+            "赔率下调但基本面不变：保留候选，但降低高赔价值标签权重",
+            "赔率上调且基本面支持：提高冷门和让球方向优先级",
+            "强队主力轮换或提前出线：降低胜平负正路，提升让球平、受让或进球数候选",
+            "弱队防线伤停扩大：提高总进球 3/4/5 候选权重",
+            "临场首发与预期相反：必须重新运行本地脚本并让 OpenClaw 复评"
+          ]
+        },
+        "odds_movement": {
+          "status": "unchanged",
+          "summary": "赔率暂无变化",
+          "changes": [],
+          "significant_changes": []
+        },
+        "requested_output": {
+          "best_bet": "最佳玩法、号码、赔率、下注话术",
+          "value_bets": "2-3 个可搏高赔备选",
+          "risk": "主要风险和放弃条件",
+          "stake_style": "小注/搏冷小注/放弃"
+        }
+      }
+    },
+    {
+      "match_id": "jc-2026-002",
+      "competition": "2026 World Cup",
+      "stage": "group",
+      "kickoff_time": "2026-06-13T03:00:00+08:00",
+      "home_team": "法国",
+      "away_team": "丹麦",
+      "home_team_code": "",
+      "away_team_code": "",
+      "home_profile": {
+        "name": "France",
+        "code": "FRA",
+        "aliases": [
+          "法国"
+        ],
+        "tier": "elite",
+        "fifa_rank_estimate": 3,
+        "elo_estimate": 2100,
+        "attack": 91,
+        "defense": 88,
+        "tournament_experience": 94,
+        "squad_depth": 93,
+        "upset_potential": 38,
+        "volatility": 32,
+        "tags": [
+          "title_contender",
+          "deep_squad",
+          "low_floor"
+        ],
+        "notes": "Elite depth; rotation and motivation are key group-stage variables."
+      },
+      "away_profile": {
+        "name": "Denmark",
+        "code": "DEN",
+        "aliases": [
+          "丹麦"
+        ],
+        "tier": "strong",
+        "fifa_rank_estimate": 21,
+        "elo_estimate": 1885,
+        "attack": 76,
+        "defense": 82,
+        "tournament_experience": 80,
+        "squad_depth": 76,
+        "upset_potential": 58,
+        "volatility": 40,
+        "tags": [
+          "structured",
+          "draw_prone",
+          "europe"
+        ],
+        "notes": "Disciplined and tactically organized; often keeps games close against stronger teams."
+      },
+      "venue": "",
+      "city": "",
+      "group": "",
+      "odds_available": true,
+      "notes": [
+        "示例CSV",
+        "强队优势明显但防平"
+      ],
+      "recommendations": [
+        {
+          "play": "胜平负",
+          "picks": [
+            "3"
+          ],
+          "backup": [],
+          "confidence": 0.731,
+          "risk_level": "低",
+          "reason": "主胜概率最高；模型与赔率综合概率约 45%，决策评分 73%。",
+          "odds": {
+            "3": 1.88,
+            "1": 3.25,
+            "0": 4.35
+          }
+        },
+        {
+          "play": "让球胜平负",
+          "picks": [
+            "1"
+          ],
+          "backup": [
+            "0"
+          ],
+          "confidence": 0.59,
+          "risk_level": "高",
+          "reason": "让球为主队 -1，综合后倾向 平。 可防 主负。",
+          "odds": {
+            "handicap": -1,
+            "3": 3.75,
+            "1": 3.35,
+            "0": 1.78
+          }
+        },
+        {
+          "play": "总进球",
+          "picks": [
+            "2"
+          ],
+          "backup": [
+            "3"
+          ],
+          "confidence": 0.53,
+          "risk_level": "高",
+          "reason": "总进球赔率重心在 2 球。 备选 3 球。",
+          "odds": {
+            "0": 9.5,
+            "1": 4.2,
+            "2": 3.25,
+            "3": 3.55,
+            "4": 5.1,
+            "5": 9.0,
+            "6": 17.0,
+            "7+": 28.0
+          }
+        }
+      ],
+      "best_pick": {
+        "play": "胜平负",
+        "picks": [
+          "3"
+        ],
+        "backup": [],
+        "confidence": 0.731,
+        "risk_level": "低",
+        "reason": "主胜概率最高；模型与赔率综合概率约 45%，决策评分 73%。",
+        "odds": {
+          "3": 1.88,
+          "1": 3.25,
+          "0": 4.35
+        }
+      },
+      "odds_movement": {
+        "status": "unchanged",
+        "summary": "赔率暂无变化",
+        "changes": [],
+        "significant_changes": []
+      },
+      "openclaw_analysis": {
+        "status": "ready_for_openclaw_analysis",
+        "instruction": "请 OpenClaw 使用自身模型和联网能力，结合球队实力、伤停、阵容、赛程、新闻、赔率回报、让球盘和冷门概率，评估这些候选投注。目标是寻找高风险高收益的价值机会，不是保守稳胆。候选池不是静态结论，若临场信息触发刷新条件，必须重新排序或剔除候选。",
+        "risk_style": "aggressive",
+        "candidate_bets": [
+          {
+            "play": "总进球",
+            "pick": "3",
+            "odds": 3.55,
+            "candidate_score": 66.419,
+            "score_breakdown": {
+              "payout": 34.232,
+              "confidence": 12.72,
+              "matchup_fit": 15.667,
+              "upset_value": 3.8,
+              "risk_penalty": 0.0
+            },
+            "strategy_tags": [
+              "高赔",
+              "进球数",
+              "中高进球",
+              "title_contender",
+              "deep_squad",
+              "structured"
+            ],
+            "rule_confidence": 0.53,
+            "rule_reason": "总进球赔率重心在 2 球。 备选 3 球。",
+            "risk_hint": "高赔率方向波动大，适合小注搏回报；若赛前伤停、首发或赔率明显反向变化，应重新筛选候选池。"
+          },
+          {
+            "play": "总进球",
+            "pick": "2",
+            "odds": 3.25,
+            "candidate_score": 62.784,
+            "score_breakdown": {
+              "payout": 31.797,
+              "confidence": 12.72,
+              "matchup_fit": 15.667,
+              "upset_value": 2.6,
+              "risk_penalty": 0.0
+            },
+            "strategy_tags": [
+              "高赔",
+              "进球数",
+              "title_contender",
+              "deep_squad",
+              "structured",
+              "draw_prone"
+            ],
+            "rule_confidence": 0.53,
+            "rule_reason": "总进球赔率重心在 2 球。 备选 3 球。",
+            "risk_hint": "高赔率方向波动大，适合小注搏回报；若赛前伤停、首发或赔率明显反向变化，应重新筛选候选池。"
+          },
+          {
+            "play": "让球胜平负",
+            "pick": "1",
+            "odds": 3.35,
+            "candidate_score": 62.296,
+            "score_breakdown": {
+              "payout": 32.609,
+              "confidence": 14.16,
+              "matchup_fit": 11.727,
+              "upset_value": 3.8,
+              "risk_penalty": 0.0
+            },
+            "strategy_tags": [
+              "高赔",
+              "让球平",
+              "强队小胜",
+              "title_contender",
+              "deep_squad",
+              "structured"
+            ],
+            "rule_confidence": 0.59,
+            "rule_reason": "让球为主队 -1，综合后倾向 平。 可防 主负。",
+            "risk_hint": "高赔率方向波动大，适合小注搏回报；若赛前伤停、首发或赔率明显反向变化，应重新筛选候选池。"
+          },
+          {
+            "play": "胜平负",
+            "pick": "3",
+            "odds": 1.88,
+            "candidate_score": 55.639,
+            "score_breakdown": {
+              "payout": 20.678,
+              "confidence": 17.544,
+              "matchup_fit": 17.417,
+              "upset_value": 0.0,
+              "risk_penalty": 0.0
+            },
+            "strategy_tags": [
+              "title_contender",
+              "deep_squad",
+              "structured",
+              "draw_prone"
+            ],
+            "rule_confidence": 0.731,
+            "rule_reason": "主胜概率最高；模型与赔率综合概率约 45%，决策评分 73%。",
+            "risk_hint": "高赔率方向波动大，适合小注搏回报；若赛前伤停、首发或赔率明显反向变化，应重新筛选候选池。"
+          },
+          {
+            "play": "让球胜平负",
+            "pick": "0",
+            "odds": 1.78,
+            "candidate_score": 39.494,
+            "score_breakdown": {
+              "payout": 19.867,
+              "confidence": 14.16,
+              "matchup_fit": 4.667,
+              "upset_value": 0.8,
+              "risk_penalty": 0.0
+            },
+            "strategy_tags": [
+              "受让方向",
+              "title_contender",
+              "deep_squad",
+              "structured",
+              "draw_prone"
+            ],
+            "rule_confidence": 0.59,
+            "rule_reason": "让球为主队 -1，综合后倾向 平。 可防 主负。",
+            "risk_hint": "高赔率方向波动大，适合小注搏回报；若赛前伤停、首发或赔率明显反向变化，应重新筛选候选池。"
+          }
+        ],
+        "team_profiles": {
+          "home": {
+            "name": "France",
+            "code": "FRA",
+            "aliases": [
+              "法国"
+            ],
+            "tier": "elite",
+            "fifa_rank_estimate": 3,
+            "elo_estimate": 2100,
+            "attack": 91,
+            "defense": 88,
+            "tournament_experience": 94,
+            "squad_depth": 93,
+            "upset_potential": 38,
+            "volatility": 32,
+            "tags": [
+              "title_contender",
+              "deep_squad",
+              "low_floor"
+            ],
+            "notes": "Elite depth; rotation and motivation are key group-stage variables."
+          },
+          "away": {
+            "name": "Denmark",
+            "code": "DEN",
+            "aliases": [
+              "丹麦"
+            ],
+            "tier": "strong",
+            "fifa_rank_estimate": 21,
+            "elo_estimate": 1885,
+            "attack": 76,
+            "defense": 82,
+            "tournament_experience": 80,
+            "squad_depth": 76,
+            "upset_potential": 58,
+            "volatility": 40,
+            "tags": [
+              "structured",
+              "draw_prone",
+              "europe"
+            ],
+            "notes": "Disciplined and tactically organized; often keeps games close against stronger teams."
+          },
+          "edge_summary": {
+            "home_tier": "elite",
+            "away_tier": "strong",
+            "edge_home_minus_away": {
+              "attack": 15,
+              "defense": 6,
+              "tournament_experience": 14,
+              "squad_depth": 17,
+              "upset_potential": -20,
+              "volatility": -8
+            },
+            "home_tags": [
+              "title_contender",
+              "deep_squad",
+              "low_floor"
+            ],
+            "away_tags": [
+              "structured",
+              "draw_prone",
+              "europe"
+            ]
+          }
+        },
+        "search_queries": [
+          "法国 vs 丹麦 World Cup 2026 preview",
+          "法国 injury news World Cup 2026",
+          "丹麦 injury news World Cup 2026",
+          "法国 predicted lineup World Cup 2026",
+          "丹麦 predicted lineup World Cup 2026",
+          "法国 vs 丹麦 team news",
+          "法国 vs 丹麦 tactical preview"
+        ],
+        "candidate_pool_policy": {
+          "refresh_required": true,
+          "refresh_triggers": [
+            "竞彩官方赔率或让球数变化",
+            "赛前首发阵容确认",
+            "关键球员伤停、停赛或临场缺阵",
+            "小组积分和出线形势变化",
+            "天气、场地、旅行距离出现明显不利信息",
+            "距离开赛 24 小时、6 小时、1 小时的例行刷新"
+          ],
+          "adjustment_rules": [
+            "赔率下调但基本面不变：保留候选，但降低高赔价值标签权重",
+            "赔率上调且基本面支持：提高冷门和让球方向优先级",
+            "强队主力轮换或提前出线：降低胜平负正路，提升让球平、受让或进球数候选",
+            "弱队防线伤停扩大：提高总进球 3/4/5 候选权重",
+            "临场首发与预期相反：必须重新运行本地脚本并让 OpenClaw 复评"
+          ]
+        },
+        "odds_movement": {
+          "status": "unchanged",
+          "summary": "赔率暂无变化",
+          "changes": [],
+          "significant_changes": []
+        },
+        "requested_output": {
+          "best_bet": "最佳玩法、号码、赔率、下注话术",
+          "value_bets": "2-3 个可搏高赔备选",
+          "risk": "主要风险和放弃条件",
+          "stake_style": "小注/搏冷小注/放弃"
+        }
+      }
+    }
+  ],
+  "parlay": [
+    {
+      "match_id": "jc-2026-001",
+      "match": "墨西哥 vs 南非",
+      "play": "胜平负",
+      "pick": [
+        "3"
+      ],
+      "backup": [],
+      "confidence": 0.781,
+      "reason": "主胜概率最高；模型与赔率综合概率约 48%，决策评分 78%。"
+    },
+    {
+      "match_id": "jc-2026-002",
+      "match": "法国 vs 丹麦",
+      "play": "胜平负",
+      "pick": [
+        "3"
+      ],
+      "backup": [],
+      "confidence": 0.731,
+      "reason": "主胜概率最高；模型与赔率综合概率约 45%，决策评分 73%。"
+    }
+  ]
+}

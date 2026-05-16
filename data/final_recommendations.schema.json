@@ -1,0 +1,28 @@
+{
+  "generated_at": "YYYY-MM-DD HH:mm:ss",
+  "source_file": "data/recommendations.json",
+  "risk_style": "aggressive",
+  "items": [
+    {
+      "match": "墨西哥 vs 南非",
+      "best_bet": {
+        "play": "总进球",
+        "pick": "3",
+        "odds": 3.75,
+        "offline_phrase": "竞彩足球，墨西哥对南非，总进球，买 3 球。",
+        "why": "为什么值得搏",
+        "risk": "主要风险",
+        "drop_conditions": "放弃条件",
+        "stake_style": "搏冷小注"
+      },
+      "value_bets": [
+        {
+          "play": "让球胜平负",
+          "pick": "1",
+          "odds": 3.4,
+          "offline_phrase": "竞彩足球，墨西哥对南非，让球胜平负，买让平。"
+        }
+      ]
+    }
+  ]
+}

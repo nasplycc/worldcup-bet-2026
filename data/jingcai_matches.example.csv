@@ -1,0 +1,3 @@
+match_id,competition,stage,kickoff_time,home_team,away_team,neutral_ground,home_rating,away_rating,spf_3,spf_1,spf_0,rq_handicap,rq_3,rq_1,rq_0,jqs_0,jqs_1,jqs_2,jqs_3,jqs_4,jqs_5,jqs_6,jqs_7p,notes
+jc-2026-001,2026 World Cup,group,2026-06-12T08:00:00+08:00,墨西哥,南非,false,82,74,1.72,3.45,5.20,-1,3.10,3.40,1.93,12.0,4.8,3.35,3.75,5.4,8.5,15.0,22.0,示例CSV；复制为 data/jingcai_matches.csv 后可作为真实数据入口
+jc-2026-002,2026 World Cup,group,2026-06-13T03:00:00+08:00,法国,丹麦,true,91,84,1.88,3.25,4.35,-1,3.75,3.35,1.78,9.5,4.2,3.25,3.55,5.1,9.0,17.0,28.0,示例CSV；强队优势明显但防平
