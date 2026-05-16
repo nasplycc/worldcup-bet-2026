@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI智球 - AI 分析包数据示例</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans SC','Inter',sans-serif;background:#080c18;color:#f0f2f8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+  .wrapper{width:1100px;background:#0c1120;border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+  .top-bar{background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.06);padding:.75rem 1.25rem;display:flex;align-items:center;gap:.75rem}
+  .dots{display:flex;gap:6px}
+  .dots span{width:10px;height:10px;border-radius:50%}
+  .dots .r{background:#ff5f57}.dots .y{background:#febc2e}.dots .g{background:#28c840}
+  .top-bar .path{font-size:.72rem;color:#565d72;font-family:'JetBrains Mono',monospace;margin-left:.5rem}
+  .top-bar .tag{margin-left:auto;background:rgba(0,232,157,0.1);color:#00e89d;font-size:.6rem;font-weight:700;padding:.15rem .5rem;border-radius:4px}
+  .content{padding:1.25rem}
+  .meta{display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
+  .meta-item{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:.5rem .875rem;flex:1;min-width:140px}
+  .meta-item .label{font-size:.6rem;color:#565d72;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.15rem}
+  .meta-item .value{font-size:.82rem;font-weight:700;color:#f0f2f8}
+  .meta-item .value.accent{color:#5b6cf7}
+  .meta-item .value.green{color:#00e89d}
+  .meta-item .value.amber{color:#ffc94c}
+  .section-title{font-size:.82rem;font-weight:700;margin:1.25rem 0 .75rem;display:flex;align-items:center;gap:.5rem}
+  .section-title .badge{font-size:.55rem;background:rgba(91,108,247,0.15);color:#8b9cff;padding:.1rem .4rem;border-radius:4px;font-weight:700}
+  .json-block{background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.04);border-radius:10px;padding:1.25rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:1.7;overflow-x:auto;color:#8a91a6;white-space:pre}
+  .json-block .key{color:#8b9cff}
+  .json-block .str{color:#00e89d}
+  .json-block .num{color:#ffc94c}
+  .json-block .bool{color:#ff5c6a}
+  .json-block .null{color:#565d72}
+  .json-block .comment{color:#565d72;font-style:italic}
+  .footer{text-align:center;margin-top:1.25rem;font-size:.6rem;color:#565d72}
+  .footer span{color:#5b6cf7}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="top-bar">
+    <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+    <div class="path">data/recommendations.json</div>
+    <div class="tag">✅ ready_for_openclaw_analysis</div>
+  </div>
+  <div class="content">
+    <div class="meta">
+      <div class="meta-item"><div class="label">比赛</div><div class="value">阿根廷 vs 法国</div></div>
+      <div class="meta-item"><div class="label">开赛时间</div><div class="value">2026-06-18 18:00</div></div>
+      <div class="meta-item"><div class="label">状态</div><div class="value green">AI 分析就绪</div></div>
+      <div class="meta-item"><div class="label">候选方向</div><div class="value accent">6 个</div></div>
+    </div>
+
+    <div class="section-title">📂 openclaw_analysis <span class="badge">分析任务包</span></div>
+    <div class="json-block">{
+  <span class="key">"status"</span>: <span class="str">"ready_for_openclaw_analysis"</span>,
+  <span class="key">"instruction"</span>: <span class="str">"请结合球队实力、伤停、阵容、赛程、新闻、\n赔率回报、让球盘和冷门概率，评估这些候选投注。\n目标是寻找高风险高回报的价值机会。"</span>,
+
+  <span class="key">"candidate_bets"</span>: [
+    {
+      <span class="key">"play"</span>: <span class="str">"胜平负"</span>,
+      <span class="key">"pick"</span>: <span class="str">"1"</span>,
+      <span class="key">"odds"</span>: <span class="num">3.45</span>,
+      <span class="key">"candidate_score"</span>: <span class="num">78.32</span>,
+      <span class="key">"strategy_tags"</span>: [<span class="str">"高赔"</span>, <span class="str">"平局冷门"</span>],
+      <span class="key">"score_breakdown"</span>: {
+        <span class="key">"payout"</span>: <span class="num">23.7</span>,
+        <span class="key">"confidence"</span>: <span class="num">15.8</span>,
+        <span class="key">"matchup_fit"</span>: <span class="num">18.2</span>,
+        <span class="key">"upset_value"</span>: <span class="num">12.1</span>,
+        <span class="key">"risk_penalty"</span>: <span class="num">0.0</span>
+      }
+    },
+    {
+      <span class="key">"play"</span>: <span class="str">"让球胜平负"</span>,
+      <span class="key">"pick"</span>: <span class="str">"1"</span>,
+      <span class="key">"odds"</span>: <span class="num">3.80</span>,
+      <span class="key">"candidate_score"</span>: <span class="num">72.15</span>,
+      <span class="key">"strategy_tags"</span>: [<span class="str">"高赔"</span>, <span class="str">"让球平"</span>, <span class="str">"强队小胜"</span>]
+    },
+    {
+      <span class="key">"play"</span>: <span class="str">"总进球"</span>,
+      <span class="key">"pick"</span>: <span class="str">"3"</span>,
+      <span class="key">"odds"</span>: <span class="num">3.20</span>,
+      <span class="key">"candidate_score"</span>: <span class="num">68.90</span>,
+      <span class="key">"strategy_tags"</span>: [<span class="str">"高赔"</span>, <span class="str">"中高进球"</span>, <span class="str">"title_contender"</span>]
+    }
+  ],
+
+  <span class="key">"team_profiles"</span>: {
+    <span class="key">"home"</span>: {
+      <span class="key">"name"</span>: <span class="str">"阿根廷"</span>,
+      <span class="key">"tier"</span>: <span class="str">"elite"</span>,
+      <span class="key">"attack"</span>: <span class="num">92</span>, <span class="key">"defense"</span>: <span class="num">86</span>,
+      <span class="key">"tournament_experience"</span>: <span class="num">96</span>,
+      <span class="key">"squad_depth"</span>: <span class="num">88</span>,
+      <span class="key">"upset_potential"</span>: <span class="num">42</span>,
+      <span class="key">"volatility"</span>: <span class="num">34</span>,
+      <span class="key">"tags"</span>: [<span class="str">"title_contender"</span>, <span class="str">"experienced"</span>]
+    },
+    <span class="key">"away"</span>: {
+      <span class="key">"name"</span>: <span class="str">"法国"</span>,
+      <span class="key">"tier"</span>: <span class="str">"elite"</span>,
+      <span class="key">"attack"</span>: <span class="num">91</span>, <span class="key">"defense"</span>: <span class="num">88</span>,
+      <span class="key">"tournament_experience"</span>: <span class="num">94</span>,
+      <span class="key">"squad_depth"</span>: <span class="num">93</span>,
+      <span class="key">"upset_potential"</span>: <span class="num">38</span>,
+      <span class="key">"volatility"</span>: <span class="num">32</span>,
+      <span class="key">"tags"</span>: [<span class="str">"title_contender"</span>, <span class="str">"deep_squad"</span>]
+    }
+  },
+
+  <span class="key">"search_queries"</span>: [
+    <span class="str">"阿根廷 vs 法国 World Cup 2026 preview"</span>,
+    <span class="str">"阿根廷 injury news World Cup 2026"</span>,
+    <span class="str">"法国 predicted lineup World Cup 2026"</span>,
+    <span class="str">"阿根廷 vs 法国 tactical preview"</span>
+  ],
+
+  <span class="key">"candidate_pool_policy"</span>: {
+    <span class="key">"refresh_triggers"</span>: [
+      <span class="str">"竞彩官方赔率或让球数变化"</span>,
+      <span class="str">"赛前首发阵容确认"</span>,
+      <span class="str">"关键球员伤停、停赛或临场缺阵"</span>,
+      <span class="str">"距离开赛 24h / 6h / 1h 的例行刷新"</span>
+    ],
+    <span class="key">"adjustment_rules"</span>: [
+      <span class="str">"赔率下调但基本面不变 → 保留候选，降低高赔权重"</span>,
+      <span class="str">"强队主力轮换 → 提升让球平、受让或进球数候选"</span>,
+      <span class="str">"临场首发与预期相反 → 必须重新运行并复评"</span>
+    ]
+  },
+
+  <span class="key">"odds_movement"</span>: {
+    <span class="key">"summary"</span>: <span class="str">"3 项显著变动"</span>,
+    <span class="key">"significant_changes"</span>: [
+      { <span class="key">"market"</span>: <span class="str">"胜平负-主胜"</span>, <span class="key">"old"</span>: <span class="num">2.15</span>, <span class="key">"new"</span>: <span class="num">2.35</span> },
+      { <span class="key">"market"</span>: <span class="str">"让球平"</span>, <span class="key">"old"</span>: <span class="num">3.60</span>, <span class="key">"new"</span>: <span class="num">3.80</span> }
+    ]
+  }
+}</div>
+
+    <div class="footer">Powered by <span>AI智球</span> · AI 分析任务包示例数据 · 实际运行结果以动态输出为准</div>
+  </div>
+</div>
+</body>
+</html>

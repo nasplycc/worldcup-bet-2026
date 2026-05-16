@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI智球 - 赛事分析报告示例</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans SC','Inter',sans-serif;background:#080c18;color:#f0f2f8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+  .wrapper{width:900px;background:#0c1120;border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+  .top-bar{background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.06);padding:.5rem 1.125rem;display:flex;align-items:center;gap:.5rem;font-size:.68rem;color:#565d72}
+  .top-bar .dot{width:6px;height:6px;border-radius:50%;background:#00e89d}
+  .top-bar .file{font-family:'JetBrains Mono',monospace;color:#8a91a6}
+  .top-bar .badge{margin-left:auto;background:rgba(91,108,247,0.1);color:#8b9cff;font-size:.55rem;font-weight:700;padding:.1rem .4rem;border-radius:4px}
+  .report{padding:1.5rem 2rem}
+  .report h1{font-size:1.15rem;font-weight:800;background:linear-gradient(135deg,#5b6cf7,#8b9cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.75rem}
+  .meta-row{display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.25rem;padding-bottom:.875rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+  .meta-row .m{font-size:.72rem;color:#8a91a6}
+  .meta-row .m span{color:#f0f2f8;font-weight:600}
+  .report h2{font-size:.9rem;font-weight:700;color:#f0f2f8;margin:1.25rem 0 .75rem;display:flex;align-items:center;gap:.4rem}
+  .report h2::before{content:'';width:3px;height:14px;border-radius:2px;background:#5b6cf7}
+  .match-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:1rem 1.125rem;margin-bottom:.625rem}
+  .match-card .teams{font-size:.95rem;font-weight:700;margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem}
+  .match-card .teams .vs{color:#565d72;font-size:.7rem}
+  .match-card .info{font-size:.68rem;color:#8a91a6;margin-bottom:.5rem;display:flex;gap:1rem}
+  .match-card .info span{color:#c0c6d4}
+  .rec{background:rgba(0,0,0,0.15);border-radius:8px;padding:.625rem .875rem;margin-top:.5rem}
+  .rec .play{font-size:.75rem;font-weight:700;color:#5b6cf7;margin-bottom:.25rem}
+  .rec .detail{font-size:.7rem;color:#8a91a6;line-height:1.6}
+  .rec .detail .g{color:#00e89d;font-weight:600}
+  .rec .detail .a{color:#ffc94c;font-weight:600}
+  .rec .detail .r{color:#ff5c6a;font-weight:600}
+  .parlay-box{background:rgba(255,201,76,0.05);border:1px solid rgba(255,201,76,0.12);border-radius:10px;padding:.875rem 1rem;margin-top:.5rem}
+  .parlay-box h3{font-size:.8rem;font-weight:700;color:#ffc94c;margin-bottom:.5rem}
+  .parlay-item{font-size:.72rem;color:#c0c6d4;padding:.2rem 0;display:flex;align-items:center;gap:.4rem}
+  .parlay-item::before{content:'▸';color:#ffc94c;font-size:.6rem}
+  .footer{text-align:center;padding:.75rem;font-size:.58rem;color:#565d72;border-top:1px solid rgba(255,255,255,0.06)}
+  .footer span{color:#5b6cf7}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="top-bar">
+    <span class="dot"></span>
+    <span class="file">data/final_recommendations.md</span>
+    <span class="badge">AI 分析报告</span>
+  </div>
+  <div class="report">
+    <h1>2026 世界杯赛事预测分析报告</h1>
+    <div class="meta-row">
+      <div class="m">生成时间 <span>2026-05-16 10:35:38</span></div>
+      <div class="m">模式 <span>今日赛事</span></div>
+      <div class="m">覆盖范围 <span>未来 3 天</span></div>
+      <div class="m">分析模型 <span>Qwen-Max + 联网搜索</span></div>
+    </div>
+
+    <h2>单场分析</h2>
+
+    <!-- Match 1 -->
+    <div class="match-card">
+      <div class="teams">阿根廷 <span class="vs">VS</span> 法国</div>
+      <div class="info">
+        <div>开赛时间 <span>2026-06-18 18:00</span></div>
+        <div>场地 <span>Arena México, 墨西哥城</span></div>
+        <div>分组 <span>A组 · 小组赛</span></div>
+      </div>
+      <div class="rec">
+        <div class="play">🎯 最佳下注</div>
+        <div class="detail">
+          玩法：<span class="a">胜平负 — 平局 (1)</span> ｜ 赔率：<span class="a">3.45</span><br>
+          下注话术：<span>平局搏冷，两队实力接近，中场伤停增加不确定性</span><br>
+          为什么值得搏：<span class="g">法国阵容深度占优但可能轮换，阿根廷主场情绪加持</span><br>
+          主要风险：<span class="r">阿根廷中场伤停确认 → 控制力下降</span><br>
+          放弃条件：<span>赛前 1h 确认阿根廷中场首发</span><br>
+          建议注码：<span class="a">小注搏冷</span>
+        </div>
+      </div>
+      <div class="rec" style="margin-top:.5rem">
+        <div class="play">🔥 高赔备选</div>
+        <div class="detail">
+          ① 让球胜平负 — 让平 (1) @ 3.80 · 强队小胜<br>
+          ② 总进球 — 3 球 @ 3.20 · 中高进球
+        </div>
+      </div>
+    </div>
+
+    <!-- Match 2 -->
+    <div class="match-card">
+      <div class="teams">日本 <span class="vs">VS</span> 韩国</div>
+      <div class="info">
+        <div>开赛时间 <span>2026-06-25 12:00</span></div>
+        <div>场地 <span>SoFi Stadium, 洛杉矶</span></div>
+        <div>分组 <span>E组 · 小组赛</span></div>
+      </div>
+      <div class="rec">
+        <div class="play">🎯 最佳下注</div>
+        <div class="detail">
+          玩法：<span class="a">总进球 — 2 球</span> ｜ 赔率：<span class="a">3.10</span><br>
+          下注话术：<span>东亚德比谨慎开局，两队防守体系成熟</span><br>
+          为什么值得搏：<span class="g">历史交锋 60% 比赛进球数 ≤2</span><br>
+          主要风险：<span class="r">任何一方早进球可能打破平衡</span><br>
+          建议注码：<span class="a">小注</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parlay -->
+    <div class="parlay-box">
+      <h3>📋 混合过关参考</h3>
+      <div class="parlay-item">阿根廷 vs 法国 · 胜平负 平 @ 3.45 · 信心 58%</div>
+      <div class="parlay-item">巴西 vs 英格兰 · 胜平负 主胜 @ 2.15 · 信心 62%</div>
+      <div class="parlay-item">日本 vs 韩国 · 总进球 ≤2 @ 2.80 · 信心 65%</div>
+      <div style="margin-top:.5rem;font-size:.65rem;color:#8a91a6">⚠ 建议过关仅作参考，临场阵容和指数变化明显时应重新评估</div>
+    </div>
+  </div>
+  <div class="footer">Powered by <span>AI智球</span> · 赛事预测报告示例 · 仅供参考学习使用</div>
+</div>
+</body>
+</html>

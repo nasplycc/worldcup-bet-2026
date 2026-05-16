@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI智球 - AI 分析演示</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans SC','Inter',sans-serif;background:#080c18;color:#f0f2f8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+  .wrapper{width:700px;background:#0c1120;border:1px solid rgba(255,255,255,0.06);border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+  .top-bar{background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.06);padding:.625rem 1.125rem;display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:#565d72}
+  .top-bar .dot{width:6px;height:6px;border-radius:50%;background:#00e89d}
+  .top-bar .badge{margin-left:auto;background:rgba(0,232,157,0.1);color:#00e89d;font-size:.55rem;font-weight:700;padding:.1rem .4rem;border-radius:4px}
+  .chat{padding:1.25rem}
+  .msg{margin-bottom:.875rem;display:flex}
+  .msg.u{justify-content:flex-end}
+  .msg.b{justify-content:flex-start}
+  .bubble{max-width:85%;border-radius:12px;padding:.75rem 1rem;font-size:.8rem;line-height:1.65}
+  .msg.u .bubble{background:linear-gradient(135deg,#5b6cf7,#8b9cff);color:#fff;border-bottom-right-radius:4px;font-weight:500}
+  .msg.b .bubble{background:var(--bg);border:1px solid rgba(255,255,255,0.06);border-bottom-left-radius:4px}
+  .bubble b{font-weight:700}
+  .bubble .g{color:#00e89d;font-weight:600}
+  .bubble .a{color:#ffc94c;font-weight:600}
+  .bubble .r{color:#ff5c6a;font-weight:600}
+  .bubble .dim{color:#565d72;font-size:.7rem}
+  .status{display:flex;align-items:center;gap:.4rem;padding:.375rem 0;font-size:.65rem;color:#565d72}
+  .status .dot{width:5px;height:5px;border-radius:50%;background:#5b6cf7;animation:pulse 1.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+  .divider{height:1px;background:rgba(255,255,255,0.04);margin:.875rem 0}
+  .input-bar{border-top:1px solid rgba(255,255,255,0.06);padding:.75rem 1.125rem;display:flex;align-items:center;gap:.625rem}
+  .input-bar .fake{flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:.5rem .875rem;font-size:.7rem;color:#565d72}
+  .input-bar .send{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#5b6cf7,#8b9cff);display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
+  .footer{text-align:center;padding:.75rem;font-size:.58rem;color:#565d72;border-top:1px solid rgba(255,255,255,0.06)}
+  .footer span{color:#5b6cf7}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="top-bar">
+    <span class="dot"></span>
+    AI智球 · AI 赛事分析引擎
+    <span class="badge">🟢 在线</span>
+  </div>
+  <div class="chat">
+    <!-- User message -->
+    <div class="msg u"><div class="bubble">分析 阿根廷 vs 法国</div></div>
+
+    <!-- Status: searching -->
+    <div class="status"><span class="dot"></span>正在联网搜索最新赛事信息...</div>
+
+    <!-- Bot: search results -->
+    <div class="msg b"><div class="bubble">
+      <b>🔍 联网检索完成</b>
+      已获取 12 条最新信息：
+      • <span class="a">伤停更新</span>：阿根廷主力中场训练中轻微拉伤
+      • <span class="a">阵容预测</span>：法国可能轮换 3 名首发
+      • <span class="a">战术分析</span>：中场控制将是关键胜负手
+      • <span class="a">天气</span>：比赛日预计 28°C，湿度 65%
+      <span class="dim">检索耗时 6.2s · 来源 8 个</span>
+    </div></div>
+
+    <div class="divider"></div>
+
+    <!-- Bot: analysis -->
+    <div class="msg b"><div class="bubble">
+      <b>📊 AI 分析结论</b>
+
+      <span class="dim">球队对比</span>
+      阿根廷 <span class="a">（精英级）</span> vs 法国 <span class="a">（精英级）</span>
+      攻击力：92 vs 91 ｜ 防守：86 vs 88
+
+      <span class="g">▎关键发现</span>
+      法国大赛经验（94）略低于阿根廷（96），但阵容深度（93）明显占优。
+
+      <span class="r">▎风险因素</span>
+      阿根廷中场伤停需关注，若确认缺阵，将显著影响中场控制力。
+
+      <b>综合评估：实力接近，平局概率值得关注</b>
+      <span class="dim">分析耗时 4.8s · 模型 Qwen-Max</span>
+    </div></div>
+  </div>
+  <div class="input-bar">
+    <div class="fake">输入比赛对阵进行分析...</div>
+    <div class="send">↑</div>
+  </div>
+  <div class="footer">Powered by <span>AI智球</span> · AI 分析演示示例</div>
+</div>
+</body>
+</html>

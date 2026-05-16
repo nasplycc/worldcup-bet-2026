@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI智球 - 技能文件与AI运行日志</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans SC','Inter',sans-serif;background:#080c18;color:#f0f2f8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+  .wrapper{width:1100px;background:#0c1120;border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+  .top-bar{background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.06);padding:.625rem 1.25rem;display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:#565d72}
+  .top-bar .dot{width:6px;height:6px;border-radius:50%;background:#00e89d}
+  .top-bar .badge{margin-left:auto;background:rgba(91,108,247,0.12);color:#8b9cff;font-size:.6rem;font-weight:700;padding:.125rem .5rem;border-radius:4px}
+  .panels{display:flex;gap:0}
+  .panel{flex:1;padding:1.25rem 1.5rem}
+  .panel+.panel{border-left:1px solid rgba(255,255,255,0.06)}
+  .panel-header{display:flex;align-items:center;gap:.5rem;margin-bottom:.875rem;padding-bottom:.625rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+  .panel-header .icon{font-size:.95rem}
+  .panel-header h3{font-size:.8rem;font-weight:700}
+  .panel-header .tag{margin-left:auto;font-size:.55rem;background:rgba(255,201,76,0.1);color:#ffc94c;padding:.1rem .4rem;border-radius:4px;font-weight:700}
+  .skill-block{font-family:'JetBrains Mono',monospace;font-size:.68rem;line-height:1.7;color:#8a91a6;white-space:pre}
+  .skill-block h1{color:#8b9cff;font-size:.72rem;margin-bottom:.35rem;font-family:'Noto Sans SC',sans-serif;font-weight:700}
+  .skill-block .kw{color:#ffc94c}
+  .skill-block .str{color:#00e89d}
+  .skill-block .comment{color:#565d72;font-style:italic}
+  .skill-block .b{color:#8b9cff}
+  .skill-block .h2{color:#8b9cff;font-size:.72rem;font-weight:700;font-family:'Noto Sans SC',sans-serif}
+  .log-block{font-family:'JetBrains Mono',monospace;font-size:.62rem;line-height:1.65;color:#8a91a6}
+  .log-block .p{color:#5b6cf7}
+  .log-block .c{color:#f0f2f8}
+  .log-block .ok{color:#00e89d}
+  .log-block .info{color:#8b9cff}
+  .log-block .warn{color:#ffc94c}
+  .log-block .dim{color:#565d72}
+  .log-block .bold{color:#f0f2f8;font-weight:700}
+  .log-block .ts{color:#565d72}
+  .log-block .dvd{color:#565d72}
+  .log-block .ai{color:#00e89d;font-weight:700}
+  .footer{text-align:center;padding:.875rem;font-size:.6rem;color:#565d72;border-top:1px solid rgba(255,255,255,0.06)}
+  .footer span{color:#5b6cf7}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="top-bar">
+    <span class="dot"></span>
+    AI智球 · 技能描述文件 + AI 运行日志
+    <span class="badge">SKILL.md + Terminal Output</span>
+  </div>
+  <div class="panels">
+    <!-- LEFT -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="icon">📄</span>
+        <h3>SKILL.md — 赛事分析技能描述</h3>
+        <span class="tag">自然语言定义</span>
+      </div>
+      <div class="skill-block"><span class="h2"># WorldCup Bet 2026 赛事分析技能</span>
+
+<span class="comment">Python 只负责整理赛程、赔率和候选方向；</span>
+<span class="comment">最终 AI 判断由大模型自身完成。</span>
+
+<span class="h2">## 读取数据</span>
+
+<span class="b">- </span>home_team / away_team
+<span class="b">- </span>kickoff_time
+<span class="b">- </span>recommendations.candidate_bets
+<span class="b">- </span>recommendations.team_profiles
+<span class="b">- </span>recommendations.search_queries
+<span class="b">- </span>recommendations.odds_movement
+
+<span class="h2">## 分析任务</span>
+
+结合联网搜索和自身模型分析：
+<span class="b">- </span>球队实力、排名、近期状态
+<span class="b">- </span>伤病、停赛、阵容、主教练战术
+<span class="b">- </span>小组形势、赛程密度、轮换动机
+<span class="b">- </span>比赛地点、气候、旅行距离
+<span class="b">- </span>市场数据回报、让球盘、冷门概率
+
+<span class="h2">## 动态候选池</span>
+
+候选池不是静态结论。若触发刷新条件，
+必须重新排序或剔除候选：
+<span class="b">- </span>竞彩赔率或让球数变化
+<span class="b">- </span>赛前首发阵容确认
+<span class="b">- </span>关键球员伤停、停赛
+<span class="b">- </span>小组积分和出线形势变化
+<span class="b">- </span>距离开赛 24h / 6h / 1h 例行刷新
+
+<span class="h2">## 目标风格</span>
+
+<span class="str">高风险高回报，优先找赔率价值
+和可搏冷门，不做保守稳胆。</span>
+
+<span class="h2">## 输出格式</span>
+
+<span class="b">- </span>最佳下注：玩法 / 号码 / 赔率
+<span class="b">- </span>下注话术
+<span class="b">- </span>为什么值得搏 / 主要风险
+<span class="b">- </span>放弃条件
+<span class="b">- </span>建议注码：小注 / 搏冷小注 / 放弃
+<span class="b">- </span>高赔备选（2-3个）</div>
+    </div>
+    <!-- RIGHT -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="icon">💻</span>
+        <h3>AI 运行日志 — 终端输出</h3>
+        <span class="tag">实时执行</span>
+      </div>
+      <div class="log-block"><span class="ts">[10:35:12]</span> <span class="p">$</span> <span class="c">./run_openclaw.sh --mode today</span>
+
+<span class="ts">[10:35:13]</span> <span class="info">▸ 同步 FIFA 官方赛程...</span>
+<span class="ts">[10:35:14]</span> <span class="ok">✓ 已加载 104 场比赛数据</span>
+<span class="ts">[10:35:14]</span> <span class="info">▸ 筛选今日比赛: 4 场</span>
+<span class="ts">[10:35:14]</span> <span class="info">▸ 加载球队画像库: 48 支</span>
+<span class="ts">[10:35:15]</span> <span class="info">▸ 读取市场指数数据...</span>
+<span class="ts">[10:35:15]</span> <span class="warn">⚡ 检测到 3 项指数显著变动</span>
+
+<span class="ts">[10:35:16]</span> <span class="info">▸ 生成候选方向...</span>
+<span class="ts">[10:35:16]</span> <span class="ok">✓ 阿根廷 vs 法国: 6 候选</span>
+<span class="ts">[10:35:16]</span> <span class="ok">✓ 巴西 vs 英格兰: 4 候选</span>
+<span class="ts">[10:35:17]</span> <span class="ok">✓ 日本 vs 韩国: 5 候选</span>
+
+<span class="dvd">──────────────────────────────────</span>
+
+<span class="ts">[10:35:18]</span> <span class="ai">🤖 AI 分析引擎启动</span>
+
+<span class="ts">[10:35:19]</span> <span class="info">▸ 联网搜索: injury news</span>
+<span class="ts">[10:35:21]</span> <span class="info">▸ 联网搜索: predicted lineup</span>
+<span class="ts">[10:35:23]</span> <span class="info">▸ 联网搜索: tactical preview</span>
+<span class="ts">[10:35:25]</span> <span class="ok">✓ 获取 12 条最新赛事信息</span>
+
+<span class="ts">[10:35:26]</span> <span class="bold">📊 综合分析中...</span>
+<span class="ts">[10:35:32]</span> <span class="ok">✓ 阿根廷 vs 法国 完成</span>
+<span class="ts">[10:35:34]</span> <span class="ok">✓ 巴西 vs 英格兰 完成</span>
+<span class="ts">[10:35:36]</span> <span class="ok">✓ 日本 vs 韩国 完成</span>
+
+<span class="dvd">──────────────────────────────────</span>
+
+<span class="ts">[10:35:37]</span> <span class="ok">✓ 报告已保存</span>
+<span class="dim">  data/final_recommendations.md</span>
+<span class="dim">  data/final_recommendations.json</span>
+<span class="ts">[10:35:37]</span> <span class="info">▸ 归档中...</span>
+<span class="ts">[10:35:38]</span> <span class="ok">✓ 已归档至 data/final_reports/</span>
+<span class="ts">[10:35:38]</span> <span class="ok">✓ 混合过关参考: 3 组</span>
+
+<span class="ts">[10:35:38]</span> <span class="ai">✅ 全部完成 · 耗时 26s</span></div>
+    </div>
+  </div>
+  <div class="footer">Powered by <span>AI智球</span> · 技能描述文件 + AI 运行日志示例</div>
+</div>
+</body>
+</html>

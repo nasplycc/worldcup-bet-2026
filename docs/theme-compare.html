@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI智球 - 主题切换效果</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans SC','Inter',sans-serif;background:#080c18;color:#f0f2f8;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;gap:1rem}
+  .label{text-align:center;font-size:.75rem;color:#565d72;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+  .comparison{display:flex;gap:0;width:1100px;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+  .preview{flex:1;overflow:hidden}
+  .preview.dark{background:#080c18}
+  .preview.light{background:#f5f7fb;color:#1a1f2e}
+  .preview-nav{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+  .preview.light .preview-nav{border-bottom-color:#e4e7ef}
+  .preview-logo{font-size:.95rem;font-weight:900}
+  .preview.logo .accent{color:#5b6cf7}
+  .preview.light .preview-logo .accent{color:#4f5de5}
+  .preview-nav-links{display:flex;gap:1.25rem}
+  .preview-nav-links a{font-size:.7rem;text-decoration:none;color:#8a91a6}
+  .preview.light .preview-nav-links a{color:#64748b}
+  .preview-hero{padding:4rem 1.5rem;text-align:center;position:relative}
+  .preview.dark .preview-hero{background:radial-gradient(ellipse 55% 45% at 50% 20%,rgba(91,108,247,.08) 0%,transparent 65%)}
+  .preview.light .preview-hero{background:radial-gradient(ellipse 55% 45% at 50% 20%,rgba(79,93,229,.04) 0%,transparent 65%)}
+  .preview-tag{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .65rem;border-radius:999px;font-size:.58rem;font-weight:600;margin-bottom:1rem}
+  .preview.dark .preview-tag{background:rgba(0,232,157,0.08);color:#00e89d;border:1px solid rgba(0,232,157,0.1)}
+  .preview.light .preview-tag{background:rgba(16,185,129,0.06);color:#10b981;border:1px solid rgba(16,185,129,0.1)}
+  .preview-tag .ldot{width:5px;height:5px;border-radius:50%;background:currentColor}
+  .preview.dark .preview-tag .ldot{background:#00e89d}
+  .preview h1{font-size:clamp(1.3rem,3vw,2rem);font-weight:900;line-height:1.15;margin-bottom:.75rem;letter-spacing:-.02em}
+  .preview h1 em{font-style:normal}
+  .preview.dark h1 em{background:linear-gradient(135deg,#5b6cf7,#8b9cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .preview.light h1 em{background:linear-gradient(135deg,#4f5de5,#6b78f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .preview-desc{font-size:.75rem;max-width:300px;margin:0 auto 1.25rem;line-height:1.6}
+  .preview.dark .preview-desc{color:#8a91a6}
+  .preview.light .preview-desc{color:#64748b}
+  .preview-btns{display:flex;gap:.5rem;justify-content:center}
+  .preview-btn{padding:.45rem 1.25rem;border-radius:8px;font-size:.72rem;font-weight:700;text-decoration:none}
+  .preview.dark .preview-btn{background:#5b6cf7;color:#fff}
+  .preview.light .preview-btn{background:#4f5de5;color:#fff}
+  .preview-btn2{padding:.45rem 1.25rem;border-radius:8px;font-size:.72rem;font-weight:700;text-decoration:none}
+  .preview.dark .preview-btn2{color:#f0f2f8;border:1px solid rgba(255,255,255,0.08)}
+  .preview.light .preview-btn2{color:#1a1f2e;border:1px solid #e4e7ef}
+  .preview-stats{display:flex;margin:-1.25rem 1.5rem 0;position:relative;z-index:2;border-radius:10px;border:1px solid rgba(255,255,255,0.06);overflow:hidden}
+  .preview.dark .preview-stats{background:rgba(255,255,255,0.03)}
+  .preview.light .preview-stats{background:#fff;border-color:#e4e7ef;box-shadow:0 4px 12px rgba(0,0,0,0.04)}
+  .preview-stat{flex:1;padding:.875rem .5rem;text-align:center}
+  .preview-stat+.preview-stat{border-left:1px solid rgba(255,255,255,0.06)}
+  .preview.light .preview-stat+.preview-stat{border-left-color:#e4e7ef}
+  .preview-sv{font-size:.95rem;font-weight:900;line-height:1}
+  .preview.dark .preview-sv{background:linear-gradient(135deg,#5b6cf7,#8b9cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .preview.light .preview-sv{background:linear-gradient(135deg,#4f5de5,#6b78f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .preview-sl{font-size:.5rem;margin-top:.2rem}
+  .preview.dark .preview-sl{color:#565d72}
+  .preview.light .preview-sl{color:#94a3b8}
+  .theme-label{position:absolute;top:.5rem;left:50%;transform:translateX(-50%);font-size:.55rem;font-weight:700;padding:.15rem .5rem;border-radius:4px;z-index:3}
+  .preview.dark .theme-label{background:rgba(255,255,255,0.06);color:#8a91a6}
+  .preview.light .theme-label{background:rgba(0,0,0,0.05);color:#64748b}
+  .arrow{text-align:center;font-size:1.5rem;color:#565d72;padding:0 1.5rem}
+</style>
+</head>
+<body>
+<div class="label">黑夜模式 / 白天模式 · 主题切换效果</div>
+<div class="comparison">
+  <!-- Dark -->
+  <div class="preview dark" style="position:relative">
+    <div class="theme-label">🌙 黑夜模式</div>
+    <div class="preview-nav">
+      <div class="preview-logo">⚽ AI<span class="accent">智球</span></div>
+      <div class="preview-nav-links"><a>功能</a><a>赛事</a><a>原理</a><a>方案</a></div>
+    </div>
+    <div class="preview-hero">
+      <div class="preview-tag"><span class="ldot"></span> 2026 世界杯 · AI 大数据预测</div>
+      <h1>用 <em>AI 大模型</em><br>预测世界杯赛事走向</h1>
+      <p class="preview-desc">融合海量历史数据、实时市场指数与 AI 深度学习模型，为您提供专业级赛事预测。</p>
+      <div class="preview-btns">
+        <a class="preview-btn">查看今日预测 →</a>
+        <a class="preview-btn2">了解更多</a>
+      </div>
+    </div>
+    <div class="preview-stats">
+      <div class="preview-stat"><div class="preview-sv">104</div><div class="preview-sl">赛事覆盖</div></div>
+      <div class="preview-stat"><div class="preview-sv">48</div><div class="preview-sl">球队画像</div></div>
+      <div class="preview-stat"><div class="preview-sv">10维</div><div class="preview-sl">AI 评估模型</div></div>
+      <div class="preview-stat"><div class="preview-sv">7×24h</div><div class="preview-sl">自动运行</div></div>
+    </div>
+  </div>
+  <!-- Light -->
+  <div class="preview light" style="position:relative">
+    <div class="theme-label">☀️ 白天模式</div>
+    <div class="preview-nav">
+      <div class="preview-logo">⚽ AI<span class="accent">智球</span></div>
+      <div class="preview-nav-links"><a>功能</a><a>赛事</a><a>原理</a><a>方案</a></div>
+    </div>
+    <div class="preview-hero">
+      <div class="preview-tag"><span class="ldot"></span> 2026 世界杯 · AI 大数据预测</div>
+      <h1>用 <em>AI 大模型</em><br>预测世界杯赛事走向</h1>
+      <p class="preview-desc">融合海量历史数据、实时市场指数与 AI 深度学习模型，为您提供专业级赛事预测。</p>
+      <div class="preview-btns">
+        <a class="preview-btn">查看今日预测 →</a>
+        <a class="preview-btn2">了解更多</a>
+      </div>
+    </div>
+    <div class="preview-stats">
+      <div class="preview-stat"><div class="preview-sv">104</div><div class="preview-sl">赛事覆盖</div></div>
+      <div class="preview-stat"><div class="preview-sv">48</div><div class="preview-sl">球队画像</div></div>
+      <div class="preview-stat"><div class="preview-sv">10维</div><div class="preview-sl">AI 评估模型</div></div>
+      <div class="preview-stat"><div class="preview-sv">7×24h</div><div class="preview-sl">自动运行</div></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI智球 - 系统架构图</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans SC','Inter',sans-serif;background:#080c18;color:#f0f2f8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+  .wrapper{width:1200px;background:#0c1120;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:3rem;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+  .header{text-align:center;margin-bottom:2.5rem}
+  .header h1{font-size:1.5rem;font-weight:800;background:linear-gradient(135deg,#5b6cf7,#8b9cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.35rem}
+  .header p{font-size:.82rem;color:#8a91a6}
+  .arch{display:flex;flex-direction:column;gap:1rem}
+  .layer{display:flex;gap:1rem;align-items:stretch}
+  .layer-label{width:110px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  .layer-label .num{font-size:.65rem;color:#5b6cf7;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem}
+  .layer-label .name{font-size:.85rem;font-weight:700;color:#f0f2f8}
+  .layer-label .desc{font-size:.6rem;color:#565d72;margin-top:.15rem}
+  .layer-body{flex:1;display:flex;gap:.75rem;flex-wrap:wrap;align-items:stretch}
+  .card{flex:1;min-width:140px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:1.125rem 1rem;transition:all .2s}
+  .card .icon{font-size:1.25rem;margin-bottom:.5rem}
+  .card h4{font-size:.8rem;font-weight:700;margin-bottom:.3rem}
+  .card p{font-size:.65rem;color:#8a91a6;line-height:1.5}
+  .card.accent{border-color:rgba(91,108,247,0.2);background:rgba(91,108,247,0.06)}
+  .card.green{border-color:rgba(0,232,157,0.15);background:rgba(0,232,157,0.04)}
+  .card.amber{border-color:rgba(255,201,76,0.15);background:rgba(255,201,76,0.04)}
+  .arrow{display:flex;justify-content:center;padding:.25rem 0}
+  .arrow svg{opacity:.3}
+  .divider{border:none;border-top:1px solid rgba(255,255,255,0.04);margin:0}
+  .footer{text-align:center;margin-top:2rem;font-size:.6rem;color:#565d72}
+  .footer span{color:#5b6cf7}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h1>⚽ AI智球 · 系统架构</h1>
+    <p>数据采集 → 特征工程 → AI 推理 → 报告输出，全自动无人值守运行</p>
+  </div>
+  <div class="arch">
+    <!-- Layer 1: Data -->
+    <div class="layer">
+      <div class="layer-label"><div class="num">Layer 1</div><div class="name">数据层</div><div class="desc">数据采集与存储</div></div>
+      <div class="layer-body">
+        <div class="card"><div class="icon">📅</div><h4>FIFA 赛程数据</h4><p>104 场比赛完整赛程、分组、场地、时间</p></div>
+        <div class="card"><div class="icon">📊</div><h4>市场指数数据</h4><p>竞彩官方指数、让球盘、总进球赔率</p></div>
+        <div class="card"><div class="icon">📋</div><h4>球队画像库</h4><p>48 支球队 10 维能力模型数据库</p></div>
+        <div class="card green"><div class="icon">📈</div><h4>指数变动记录</h4><p>历史指数快照、波动阈值检测</p></div>
+      </div>
+    </div>
+    <!-- Arrow -->
+    <div class="arrow"><svg width="40" height="20" viewBox="0 0 40 20"><path d="M20 0 L20 16 M14 10 L20 17 L26 10" stroke="#5b6cf7" stroke-width="2" fill="none"/></svg></div>
+    <!-- Layer 2: Engine -->
+    <div class="layer">
+      <div class="layer-label"><div class="num">Layer 2</div><div class="name">引擎层</div><div class="desc">规则引擎与特征工程</div></div>
+      <div class="layer-body">
+        <div class="card accent"><div class="icon">⚙️</div><h4>规则引擎</h4><p>胜平负/让球/总进球候选方向筛选</p></div>
+        <div class="card accent"><div class="icon">🔬</div><h4>特征提取</h4><p>球队实力差值、冷门潜力、波动率计算</p></div>
+        <div class="card accent"><div class="icon">🎯</div><h4>候选池生成</h4><p>综合评分排序，输出 Top6 高赔方向</p></div>
+        <div class="card amber"><div class="icon">🔄</div><h4>动态刷新策略</h4><p>伤停/首发/赔率变化触发重新评估</p></div>
+      </div>
+    </div>
+    <!-- Arrow -->
+    <div class="arrow"><svg width="40" height="20" viewBox="0 0 40 20"><path d="M20 0 L20 16 M14 10 L20 17 L26 10" stroke="#5b6cf7" stroke-width="2" fill="none"/></svg></div>
+    <!-- Layer 3: AI -->
+    <div class="layer">
+      <div class="layer-label"><div class="num">Layer 3</div><div class="name">AI 层</div><div class="desc">大模型推理与决策</div></div>
+      <div class="layer-body">
+        <div class="card accent" style="flex:1.3"><div class="icon">🧠</div><h4>AI 大模型</h4><p>大语言模型综合分析，结合联网搜索获取最新伤停、阵容、战术、天气等临场信息</p></div>
+        <div class="card accent"><div class="icon">🔍</div><h4>联网搜索</h4><p>自动检索最新赛事新闻、伤停报告、首发预测</p></div>
+        <div class="card accent"><div class="icon">⚖️</div><h4>多维交叉验证</h4><p>数据模型 + 新闻面 + 市场动态综合判断</p></div>
+      </div>
+    </div>
+    <!-- Arrow -->
+    <div class="arrow"><svg width="40" height="20" viewBox="0 0 40 20"><path d="M20 0 L20 16 M14 10 L20 17 L26 10" stroke="#5b6cf7" stroke-width="2" fill="none"/></svg></div>
+    <!-- Layer 4: Output -->
+    <div class="layer">
+      <div class="layer-label"><div class="num">Layer 4</div><div class="name">输出层</div><div class="desc">报告与交互</div></div>
+      <div class="layer-body">
+        <div class="card green"><div class="icon">📝</div><h4>分析报告</h4><p>Markdown + JSON 双格式赛事预测报告</p></div>
+        <div class="card green"><div class="icon">🌐</div><h4>Web 前端</h4><p>SaaS 风格页面，赛事浏览 + AI 分析演示</p></div>
+        <div class="card green"><div class="icon">🔔</div><h4>实时推送</h4><p>Telegram 消息提醒，重要变化即时通知</p></div>
+        <div class="card green"><div class="icon">📦</div><h4>赛后复盘</h4><p>赛果录入 → 自动结算 → 准确率统计</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Powered by <span>AI智球</span> · 部署于 HomeNAS · 7×24h 自动运行</div>
+</div>
+</body>
+</html>

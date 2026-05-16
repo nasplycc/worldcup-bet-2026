@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI智球 - 赛后复盘报告</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans SC','Inter',sans-serif;background:#080c18;color:#f0f2f8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+  .wrapper{width:900px;background:#0c1120;border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+  .top-bar{background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.06);padding:.5rem 1.125rem;display:flex;align-items:center;gap:.5rem;font-size:.68rem;color:#565d72}
+  .top-bar .dot{width:6px;height:6px;border-radius:50%;background:#00e89d}
+  .top-bar .file{font-family:'JetBrains Mono',monospace;color:#8a91a6}
+  .top-bar .badge{margin-left:auto;background:rgba(255,201,76,0.1);color:#ffc94c;font-size:.55rem;font-weight:700;padding:.1rem .4rem;border-radius:4px}
+  .report{padding:1.5rem 2rem}
+  .report h1{font-size:1.15rem;font-weight:800;background:linear-gradient(135deg,#5b6cf7,#8b9cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.75rem}
+  .meta-row{display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.25rem;padding-bottom:.875rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+  .meta-row .m{font-size:.72rem;color:#8a91a6}
+  .meta-row .m span{color:#f0f2f8;font-weight:600}
+
+  /* Stats cards */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.5rem}
+  .stat-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:1rem;text-align:center}
+  .stat-card .sv{font-size:1.5rem;font-weight:900;line-height:1}
+  .stat-card .sv.green{color:#00e89d}
+  .stat-card .sv.amber{color:#ffc94c}
+  .stat-card .sv.red{color:#ff5c6a}
+  .stat-card .sv.blue{color:#5b6cf7}
+  .stat-card .sl{font-size:.65rem;color:#565d72;margin-top:.25rem}
+
+  /* Results table */
+  .report h2{font-size:.9rem;font-weight:700;color:#f0f2f8;margin:1.25rem 0 .75rem;display:flex;align-items:center;gap:.4rem}
+  .report h2::before{content:'';width:3px;height:14px;border-radius:2px;background:#5b6cf7}
+  .result-table{width:100%;border-collapse:collapse}
+  .result-table th{text-align:left;font-size:.65rem;color:#565d72;text-transform:uppercase;letter-spacing:.06em;padding:.5rem .625rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+  .result-table td{font-size:.72rem;padding:.625rem;border-bottom:1px solid rgba(255,255,255,0.03)}
+  .result-table tr:last-child td{border-bottom:none}
+  .tag-ok{color:#00e89d;font-weight:700}
+  .tag-fail{color:#ff5c6a;font-weight:700}
+  .tag-partial{color:#ffc94c;font-weight:700}
+  .odds{font-family:'JetBrains Mono',monospace;color:#c0c6d4}
+
+  /* Analysis */
+  .analysis-box{background:rgba(91,108,247,0.05);border:1px solid rgba(91,108,247,0.12);border-radius:10px;padding:1rem 1.125rem;margin-top:.75rem}
+  .analysis-box h3{font-size:.8rem;font-weight:700;color:#8b9cff;margin-bottom:.5rem}
+  .analysis-box p{font-size:.72rem;color:#8a91a6;line-height:1.7}
+  .analysis-box p strong{color:#f0f2f8}
+  .analysis-box ul{list-style:none;margin-top:.35rem}
+  .analysis-box ul li{font-size:.7rem;color:#8a91a6;padding:.2rem 0;display:flex;align-items:flex-start;gap:.35rem}
+  .analysis-box ul li::before{content:'→';color:#5b6cf7;font-weight:700}
+
+  .footer{text-align:center;padding:.75rem;font-size:.58rem;color:#565d72;border-top:1px solid rgba(255,255,255,0.06)}
+  .footer span{color:#5b6cf7}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="top-bar">
+    <span class="dot"></span>
+    <span class="file">data/settlement_report.md</span>
+    <span class="badge">赛后复盘</span>
+  </div>
+  <div class="report">
+    <h1>赛后复盘报告</h1>
+    <div class="meta-row">
+      <div class="m">复盘日期 <span>2026-06-19</span></div>
+      <div class="m">复盘比赛 <span>阿根廷 vs 法国</span></div>
+      <div class="m">实际赛果 <span>1:1 平局</span></div>
+      <div class="m">单注金额 <span>¥10</span></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card"><div class="sv green">1</div><div class="sl">命中场次</div></div>
+      <div class="stat-card"><div class="sv red">1</div><div class="sl">未命中</div></div>
+      <div class="stat-card"><div class="sv blue">50%</div><div class="sl">命中率</div></div>
+      <div class="stat-card"><div class="sv amber">+¥14.5</div><div class="sl">盈亏合计</div></div>
+    </div>
+
+    <!-- Table -->
+    <h2>推荐明细</h2>
+    <table class="result-table">
+      <thead>
+        <tr><th>推荐方向</th><th>号码</th><th>赔率</th><th>赛果</th><th>状态</th><th>盈亏</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>胜平负</td><td>平局 (1)</td><td class="odds">3.45</td>
+          <td>1:1 平</td><td class="tag-ok">✓ 命中</td>
+          <td class="tag-ok">+¥24.5</td>
+        </tr>
+        <tr>
+          <td>让球胜平负</td><td>让平 (1)</td><td class="odds">3.80</td>
+          <td>1:1（让1球→负）</td><td class="tag-fail">✗ 未中</td>
+          <td class="tag-fail">-¥10</td>
+        </tr>
+        <tr>
+          <td>总进球</td><td>3 球</td><td class="odds">3.20</td>
+          <td>总进球 2</td><td class="tag-fail">✗ 未中</td>
+          <td class="tag-fail">-¥10</td>
+        </tr>
+        <tr>
+          <td>总进球</td><td>2 球</td><td class="odds">3.10</td>
+          <td>总进球 2</td><td class="tag-ok">✓ 命中</td>
+          <td class="tag-ok">+¥21.0</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Analysis -->
+    <div class="analysis-box">
+      <h3>📊 复盘分析</h3>
+      <p><strong>命中总结：</strong>平局判断准确。AI 模型正确识别两队实力接近、中场伤停增加不确定性，平局方向命中。</p>
+      <p><strong>未命中原因：</strong></p>
+      <ul>
+        <li>让球平未中：比赛确实小比分，但让球方未能取胜</li>
+        <li>总进球 3 未中：防守博弈导致进球数低于预期</li>
+      </ul>
+      <p style="margin-top:.5rem"><strong>模型优化建议：</strong>当双方中场均有伤停时，进球数预测应偏保守，适当降低大球方向权重。</p>
+    </div>
+  </div>
+  <div class="footer">Powered by <span>AI智球</span> · 赛后复盘报告示例 · 持续优化模型参数</div>
+</div>
+</body>
+</html>
