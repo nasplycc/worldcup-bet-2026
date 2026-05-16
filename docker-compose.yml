@@ -1,0 +1,18 @@
+services:
+  worldcup-ai:
+    build: .
+    container_name: worldcup-bet-2026
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8088/api/health')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
