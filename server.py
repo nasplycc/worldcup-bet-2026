@@ -1192,6 +1192,80 @@ def odds_snapshot_payload(row):
     }
 
 
+def current_odds_sources(snapshot_rows):
+    sources = {}
+    for row in snapshot_rows:
+        key = f"{row.source}|{row.bookmaker or row.source}"
+        item = sources.setdefault(key, {
+            "source": row.source,
+            "bookmaker": row.bookmaker or row.source,
+            "updated": row.captured_at.isoformat() if row.captured_at else "",
+            "h2h": {},
+            "totals": [],
+        })
+        if row.captured_at and row.captured_at.isoformat() > item["updated"]:
+            item["updated"] = row.captured_at.isoformat()
+        if row.market == "h2h":
+            prev = item["h2h"].get(row.selection)
+            if not prev or row.captured_at.isoformat() >= prev.get("capturedAt", ""):
+                item["h2h"][row.selection] = {
+                    "price": row.price,
+                    "capturedAt": row.captured_at.isoformat() if row.captured_at else "",
+                }
+        elif row.market == "totals":
+            total_key = f"{row.selection}|{row.point}"
+            existing = None
+            for total in item["totals"]:
+                if total.get("_key") == total_key:
+                    existing = total
+                    break
+            payload = {
+                "_key": total_key,
+                "selection": row.selection,
+                "point": row.point,
+                "price": row.price,
+                "capturedAt": row.captured_at.isoformat() if row.captured_at else "",
+            }
+            if existing:
+                if payload["capturedAt"] >= existing.get("capturedAt", ""):
+                    existing.update(payload)
+            else:
+                item["totals"].append(payload)
+
+    result = []
+    for item in sources.values():
+        h2h = {
+            selection: payload["price"]
+            for selection, payload in item["h2h"].items()
+        }
+        totals = [
+            {key: value for key, value in total.items() if key != "_key"}
+            for total in item["totals"]
+        ]
+        result.append({
+            "source": item["source"],
+            "bookmaker": item["bookmaker"],
+            "updated": item["updated"],
+            "h2h": h2h,
+            "totals": totals,
+        })
+    return sorted(result, key=lambda item: item.get("updated", ""), reverse=True)
+
+
+def recent_snapshot_batch(snapshot_rows):
+    if not snapshot_rows:
+        return []
+    latest = max((row.captured_at for row in snapshot_rows if row.captured_at), default=None)
+    if not latest:
+        return []
+    cutoff = latest - timedelta(minutes=5)
+    return [
+        odds_snapshot_payload(row)
+        for row in snapshot_rows
+        if row.captured_at and row.captured_at >= cutoff
+    ][:30]
+
+
 def analysis_payload(row, plan="free"):
     payload = row.payload or {}
     analysis = payload.get("analysis") if isinstance(payload, dict) else None
@@ -1235,6 +1309,8 @@ def match_detail(league_key, source_id):
         return jsonify({"error": "Match not found"}), 404
 
     snapshots = []
+    current_sources = []
+    recent_batch = []
     analyses = []
     db_match_id = None
     try:
@@ -1244,15 +1320,18 @@ def match_detail(league_key, source_id):
             )
             if row:
                 db_match_id = row.id
+                snapshot_rows = session.scalars(
+                    select(OddsSnapshot)
+                    .where(OddsSnapshot.match_id == row.id)
+                    .order_by(OddsSnapshot.captured_at.desc())
+                    .limit(120)
+                ).all()
                 snapshots = [
                     odds_snapshot_payload(item)
-                    for item in session.scalars(
-                        select(OddsSnapshot)
-                        .where(OddsSnapshot.match_id == row.id)
-                        .order_by(OddsSnapshot.captured_at.desc())
-                        .limit(60)
-                    ).all()
+                    for item in snapshot_rows
                 ]
+                current_sources = current_odds_sources(snapshot_rows)
+                recent_batch = recent_snapshot_batch(snapshot_rows)
                 analyses = [
                     analysis_payload(item, plan)
                     for item in session.scalars(
@@ -1270,6 +1349,8 @@ def match_detail(league_key, source_id):
         "league": league_key,
         "dbMatchId": db_match_id,
         "subscription": {"plan": plan},
+        "oddsSources": current_sources,
+        "recentOddsBatch": recent_batch,
         "oddsSnapshots": snapshots,
         "analysisResults": analyses,
         "updated": cst_now().isoformat(),
