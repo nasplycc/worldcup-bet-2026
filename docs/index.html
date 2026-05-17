@@ -223,6 +223,9 @@ function groupRank(title){
   const ge=title.match(/^Group ([A-L])/);
   if(g)return groupOrder.indexOf(g[1]);
   if(ge)return groupOrder.indexOf(ge[1]);
+  // Handle "第 N 轮" for league matchdays
+  const md=title.match(/^第\s*(\d+)\s*轮$/);
+  if(md)return parseInt(md[1],10);
   const stageRank={'小组赛':20,'三十二强':32,'十六强':40,'四分之一决赛':50,'半决赛':60,'三四名决赛':70,'决赛':80};
   const stageRankEn={'Group Stage':20,'Round of 32':32,'Round of 16':40,'Quarter-finals':50,'Semi-finals':60,'Third-place Play-off':70,'Final':80};
   return stageRank[title]||stageRankEn[title]||100;
@@ -272,8 +275,8 @@ const marketMapEn={h2h:'H2H',totals:'O/U','1x2':'1X2','1X2':'1X2','Match Winner'
 const selectionMap={home:'主胜',draw:'平局',away:'客胜',over:'大球',under:'小球',yes:'是',no:'否','1':'主胜','X':'平局','2':'客胜'};
 const selectionMapEn={home:'Home',draw:'Draw',away:'Away',over:'Over',under:'Under',yes:'Yes',no:'No','1':'Home','X':'Draw','2':'Away'};
 const sourceMap={'the-odds-api':'The Odds API','api-football':'API-Football','football-data.org':'football-data.org',database:'数据库',openfootball:'OpenFootball'};
-function localizeMarket(v){return currentLang==='en'?(marketMapEn[v]||marketMap[v]||v):(marketMap[v]||v)}
-function localizeSelection(v){return currentLang==='en'?(selectionMapEn[v]||selectionMap[v]||v):(selectionMap[v]||v)}
+function localizeMarket(v){const k=(v||'').toLowerCase();return currentLang==='en'?(marketMapEn[k]||marketMap[k]||v):(marketMap[k]||v)}
+function localizeSelection(v){const k=(v||'').toLowerCase();return currentLang==='en'?(selectionMapEn[k]||selectionMap[k]||v):(selectionMap[k]||v)}
 function localizeSource(v){return sourceMap[v]||v}
 function localizeTime(iso){if(!iso)return '-';try{const d=new Date(iso);return d.toLocaleString('zh-CN',{hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(e){return iso}}
 
