@@ -158,6 +158,18 @@ class OddsSnapshot(Base):
     raw: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
 
 
+class MatchData(Base):
+    __tablename__ = "match_data"
+    __table_args__ = (UniqueConstraint("match_id", "data_type", "source", name="uq_match_data_type_source"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    match_id: Mapped[int] = mapped_column(ForeignKey("matches.id", ondelete="CASCADE"), index=True, nullable=False)
+    data_type: Mapped[str] = mapped_column(String(40), index=True, nullable=False)
+    source: Mapped[str] = mapped_column(String(80), default="api-football", nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True, nullable=False)
+
+
 class AnalysisResult(Base):
     __tablename__ = "analysis_results"
 
@@ -324,6 +336,7 @@ def db_counts() -> dict[str, int]:
             "users": len(session.scalars(select(User.id)).all()),
             "teams": len(session.scalars(select(Team.id)).all()),
             "matches": len(session.scalars(select(Match.id)).all()),
+            "match_data": len(session.scalars(select(MatchData.id)).all()),
             "odds_snapshots": len(session.scalars(select(OddsSnapshot.id)).all()),
             "analysis_results": len(session.scalars(select(AnalysisResult.id)).all()),
             "analysis_jobs": len(session.scalars(select(AnalysisJob.id)).all()),

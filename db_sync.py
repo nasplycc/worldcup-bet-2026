@@ -43,6 +43,23 @@ def upsert_matches_from_frontend(matches: list[dict[str, Any]], competition_key:
                 "raw": item,
             }
             if existing:
+                if payload.get("raw"):
+                    merged_raw = dict(existing.raw or {})
+                    merged_raw.update(payload["raw"])
+                    for preserve_key in (
+                        "fixtureId",
+                        "fixture_id",
+                        "fixtureSource",
+                        "fixtureSeason",
+                        "apiFootballFixture",
+                        "sportsdbEventId",
+                        "idEvent",
+                        "sportsdbSeason",
+                        "theSportsDBEvent",
+                    ):
+                        if preserve_key in (existing.raw or {}) and not payload["raw"].get(preserve_key):
+                            merged_raw[preserve_key] = existing.raw[preserve_key]
+                    payload["raw"] = merged_raw
                 for key, value in payload.items():
                     if key in {"venue", "city", "home_team_name", "away_team_name"} and not value:
                         continue
@@ -136,6 +153,28 @@ def persist_odds_snapshots(matches: list[dict[str, Any]], competition_key: str) 
                     raw=odds,
                 ))
                 inserted += 1
+            for item in odds.get("spreads") or []:
+                point = item.get("point")
+                for selection in ("home", "draw", "away"):
+                    price = item.get(selection)
+                    if price is None:
+                        continue
+                    key = ("spread", selection, float(price))
+                    if key in existing_set:
+                        continue
+                    session.add(OddsSnapshot(
+                        match_id=match_id,
+                        competition_key=competition_key,
+                        source=source,
+                        bookmaker=bookmaker,
+                        market="spread",
+                        selection=selection,
+                        price=float(price),
+                        point=point,
+                        captured_at=captured_at,
+                        raw=odds,
+                    ))
+                    inserted += 1
     return inserted
 
 
