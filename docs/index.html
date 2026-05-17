@@ -171,8 +171,14 @@ function home(m){return zhName(m.homeName||m.homeFull||m.home)}
 function away(m){return zhName(m.awayName||m.awayFull||m.away)}
 function teamCode(m,side){return (m[side]||'').toString().trim()}
 function conf(m){return Math.round(((m.pick&&m.pick.conf)||0)*100)}
-function pickLabel(m){return m.pick&&m.pick.conf>0?localizeText(m.pick.label):t('synced')}
-function pickDesc(m){return m.pick&&m.pick.reason?localizeText(m.pick.reason):(m.oddsAvailable?t('reviewPending'):t('oddsPending'))}
+function pickLabel(m){return m.pick&&m.pick.label?localizeText(m.pick.label):t('synced')}
+function pickDesc(m){
+  if(m.oddsAvailable&&m.odds){
+    const book=m.odds.bookmaker||m.odds.source||'';
+    return book?`${localizeText(m.pick&&m.pick.reason?m.pick.reason:'指数已接入')} · ${book}`:localizeText(m.pick&&m.pick.reason?m.pick.reason:'指数已接入');
+  }
+  return m.pick&&m.pick.reason?localizeText(m.pick.reason):(m.oddsAvailable?t('reviewPending'):t('oddsPending'));
+}
 function flag(code){return flagMap[code]||'⚽'}
 function dateText(m){return (m.date||'').slice(5).replace('-','月')+(m.date?'日':'')}
 function statusName(status){return status==='live'||status==='ht'?t('statusLive'):status==='finished'?t('statusFinished'):t('statusUpcoming')}

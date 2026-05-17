@@ -8,6 +8,7 @@ load_dotenv()
 import os
 import time
 import jwt
+import threading
 from urllib.parse import urlencode
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -18,7 +19,8 @@ from sqlalchemy import select
 
 from frontend_data import merge_worldcup_frontend, recommendations_to_frontend, schedule_to_frontend
 from state import load_json
-from db import Match, User, UserPreference, db_counts, init_db, password_hash, seed_all, session_scope
+from db import Match, SyncRun, User, UserPreference, db_counts, init_db, password_hash, seed_all, session_scope
+from db_sync import persist_analysis_files, persist_odds_snapshots, upsert_matches_from_frontend
 
 app = Flask(__name__, static_folder="docs", static_url_path="")
 ROOT = Path(__file__).resolve().parent
@@ -36,6 +38,11 @@ THE_ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 API_FOOTBALL_BASE = "https://v3.football.api-sports.io"
 CACHE = {}
 CACHE_TTL = 60
+AUTO_SYNC_ENABLED = os.environ.get("AUTO_SYNC_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
+AUTO_SYNC_INTERVAL_MINUTES = max(5, int(os.environ.get("AUTO_SYNC_INTERVAL_MINUTES", "60")))
+SYNC_STARTUP_DELAY_SECONDS = max(0, int(os.environ.get("SYNC_STARTUP_DELAY_SECONDS", "20")))
+SYNC_LOCK = threading.Lock()
+SCHEDULER_STARTED = False
 
 
 def bootstrap_database():
@@ -44,7 +51,9 @@ def bootstrap_database():
     last_exc = None
     for attempt in range(1, retries + 1):
         try:
-            return {"ok": True, "seeded": seed_all(), "counts": db_counts(), "error": ""}
+            seeded = seed_all()
+            analysis_count = persist_analysis_files()
+            return {"ok": True, "seeded": {**seeded, "analysis_files": analysis_count}, "counts": db_counts(), "error": ""}
         except Exception as exc:
             last_exc = exc
             print(f"[DB] bootstrap attempt {attempt}/{retries} failed: {exc}")
@@ -413,6 +422,7 @@ def load_epl_frontend_payload():
         })
 
     attach_odds(matches, "epl")
+    upsert_matches_from_frontend(matches, "epl", "2025", "football-data.org")
     return {
         "count": len(matches),
         "matches": matches,
@@ -477,6 +487,7 @@ def load_openfootball_epl_payload(date_from, date_to, fallback_reason=""):
         })
 
     attach_odds(matches, "epl")
+    upsert_matches_from_frontend(matches, "epl", "2025", "openfootball")
     return {
         "count": len(matches),
         "matches": matches,
@@ -709,6 +720,7 @@ def attach_odds(matches, league_key):
             "conf": 0.0,
             "reason": "指数已接入，等待 AI 复评",
         }
+    persist_odds_snapshots(matches, league_key)
     return matches
 
 
@@ -743,6 +755,140 @@ def load_combined_matches_payload():
     }, status
 
 
+def sync_run_payload(row):
+    if not row:
+        return None
+    return {
+        "id": row.id,
+        "jobName": row.job_name,
+        "trigger": row.trigger,
+        "status": row.status,
+        "startedAt": row.started_at.isoformat() if row.started_at else "",
+        "finishedAt": row.finished_at.isoformat() if row.finished_at else "",
+        "durationMs": row.duration_ms,
+        "summary": row.summary or {},
+        "error": row.error or "",
+    }
+
+
+def latest_sync_run():
+    try:
+        with session_scope() as session:
+            row = session.scalars(
+                select(SyncRun).order_by(SyncRun.started_at.desc()).limit(1)
+            ).first()
+            return sync_run_payload(row)
+    except Exception as exc:
+        return {"status": "error", "error": str(exc)}
+
+
+def execute_sync(trigger="manual"):
+    if not SYNC_LOCK.acquire(blocking=False):
+        summary = {"message": "sync already running"}
+        with session_scope() as session:
+            row = SyncRun(
+                job_name="data_sync",
+                trigger=trigger,
+                status="skipped",
+                started_at=datetime.now(timezone.utc),
+                finished_at=datetime.now(timezone.utc),
+                duration_ms=0,
+                summary=summary,
+            )
+            session.add(row)
+            session.flush()
+            run_payload = sync_run_payload(row)
+        return {"ok": False, "skipped": True, "syncRun": run_payload, **summary}
+
+    started = datetime.now(timezone.utc)
+    run_id = None
+    try:
+        with session_scope() as session:
+            row = SyncRun(job_name="data_sync", trigger=trigger, status="running", started_at=started)
+            session.add(row)
+            session.flush()
+            run_id = row.id
+
+        epl_payload, epl_status = load_epl_frontend_payload()
+        worldcup_payload, worldcup_status = load_worldcup_frontend_payload()
+        analysis_files = persist_analysis_files()
+        counts = db_counts()
+        summary = {
+            "epl": {
+                "status": epl_status,
+                "count": epl_payload.get("count", 0),
+                "source": epl_payload.get("source", ""),
+                "error": epl_payload.get("error", ""),
+            },
+            "worldcup": {
+                "status": worldcup_status,
+                "count": worldcup_payload.get("count", 0),
+                "source": worldcup_payload.get("source", ""),
+                "error": worldcup_payload.get("error", ""),
+            },
+            "analysisFiles": analysis_files,
+            "database": counts,
+        }
+        ok = epl_status == 200 or worldcup_status == 200
+        status = "success" if ok else "failed"
+        finished = datetime.now(timezone.utc)
+
+        with session_scope() as session:
+            row = session.get(SyncRun, run_id)
+            row.status = status
+            row.finished_at = finished
+            row.duration_ms = int((finished - started).total_seconds() * 1000)
+            row.summary = summary
+            row.error = "" if ok else "no match source returned successful data"
+            session.flush()
+            run_payload = sync_run_payload(row)
+
+        return {
+            "ok": ok,
+            "epl": summary["epl"],
+            "worldcup": summary["worldcup"],
+            "analysis_files": analysis_files,
+            "database": counts,
+            "syncRun": run_payload,
+            "updated": cst_now().isoformat(),
+        }
+    except Exception as exc:
+        finished = datetime.now(timezone.utc)
+        if run_id:
+            try:
+                with session_scope() as session:
+                    row = session.get(SyncRun, run_id)
+                    row.status = "failed"
+                    row.finished_at = finished
+                    row.duration_ms = int((finished - started).total_seconds() * 1000)
+                    row.error = str(exc)
+                    row.summary = {"database": db_counts()}
+            except Exception as log_exc:
+                print(f"[Sync] failed to update sync_runs: {log_exc}")
+        print(f"[Sync] {trigger} sync failed: {exc}")
+        return {"ok": False, "error": str(exc), "updated": cst_now().isoformat()}
+    finally:
+        SYNC_LOCK.release()
+
+
+def scheduler_loop():
+    if SYNC_STARTUP_DELAY_SECONDS:
+        time.sleep(SYNC_STARTUP_DELAY_SECONDS)
+    while True:
+        execute_sync(trigger="scheduled")
+        time.sleep(AUTO_SYNC_INTERVAL_MINUTES * 60)
+
+
+def start_scheduler_once():
+    global SCHEDULER_STARTED
+    if SCHEDULER_STARTED or not AUTO_SYNC_ENABLED:
+        return
+    SCHEDULER_STARTED = True
+    thread = threading.Thread(target=scheduler_loop, name="data-sync-scheduler", daemon=True)
+    thread.start()
+    print(f"[Sync] scheduler enabled: every {AUTO_SYNC_INTERVAL_MINUTES} minutes")
+
+
 @app.route("/api/health")
 def health():
     worldcup_payload, worldcup_status = load_worldcup_frontend_payload()
@@ -763,8 +909,33 @@ def health():
         "worldcup_matches": worldcup_payload.get("count", 0),
         "worldcup_status": worldcup_status,
         "source": "combined",
+        "sync": {
+            "enabled": AUTO_SYNC_ENABLED,
+            "intervalMinutes": AUTO_SYNC_INTERVAL_MINUTES,
+            "latest": latest_sync_run(),
+        },
         "updated": cst_now().isoformat(),
     }), 200
+
+
+@app.route("/api/admin/sync", methods=["POST"])
+def admin_sync():
+    result = execute_sync(trigger="manual")
+    return jsonify(result), 200 if result.get("ok") or result.get("skipped") else 500
+
+
+@app.route("/api/admin/sync-runs")
+def admin_sync_runs():
+    limit = min(100, max(1, int(request.args.get("limit", "20"))))
+    with session_scope() as session:
+        rows = session.scalars(
+            select(SyncRun).order_by(SyncRun.started_at.desc()).limit(limit)
+        ).all()
+        return jsonify({
+            "count": len(rows),
+            "runs": [sync_run_payload(row) for row in rows],
+            "updated": cst_now().isoformat(),
+        })
 
 
 @app.route("/api/system/status")
@@ -901,4 +1072,5 @@ if __name__ == "__main__":
     print(f"🚀 AI智球 server starting on :8088")
     print(f"🏟️ Matches loaded: {startup_payload.get('count', 0)}")
     print(f"📊 football-data.org API key: {'✅ configured' if API_KEY else '❌ not set'}")
+    start_scheduler_once()
     app.run(host="0.0.0.0", port=8088, debug=False, threaded=True)

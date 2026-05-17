@@ -157,6 +157,20 @@ class AnalysisResult(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True, nullable=False)
 
 
+class SyncRun(Base):
+    __tablename__ = "sync_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    job_name: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    trigger: Mapped[str] = mapped_column(String(40), default="manual", index=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="running", index=True, nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True, nullable=False)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
+    summary: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    error: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+
 def init_db() -> None:
     Path("data").mkdir(exist_ok=True)
     Base.metadata.create_all(bind=engine)
@@ -275,4 +289,5 @@ def db_counts() -> dict[str, int]:
             "matches": len(session.scalars(select(Match.id)).all()),
             "odds_snapshots": len(session.scalars(select(OddsSnapshot.id)).all()),
             "analysis_results": len(session.scalars(select(AnalysisResult.id)).all()),
+            "sync_runs": len(session.scalars(select(SyncRun.id)).all()),
         }
