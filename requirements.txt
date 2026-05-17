@@ -1,2 +1,6 @@
 python-dotenv>=1.0.1
 requests>=2.32.0
+flask>=3.0.0
+SQLAlchemy>=2.0.30
+psycopg2-binary>=2.9.9
+PyJWT>=2.8.0

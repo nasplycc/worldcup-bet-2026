@@ -10,7 +10,7 @@
   "source_file": "data/jingcai_matches.csv",
   "used_fallback_source": false,
   "odds_movement": {
-    "generated_at": "2026-05-14T17:03:02.875646+00:00",
+    "generated_at": "2026-05-16T12:53:17.174602+00:00",
     "absolute_threshold": 0.05,
     "percent_threshold": 0.03,
     "changes": []

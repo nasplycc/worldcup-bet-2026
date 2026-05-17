@@ -5,14 +5,38 @@ services:
     restart: unless-stopped
     ports:
       - "8088:8088"
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
       - ./data:/app/data
       - ./.env:/app/.env:ro
     env_file:
       - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://worldcup:change_me@db:5432/worldcup_ai}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8088/api/health')"]
       interval: 60s
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  db:
+    image: postgres:16
+    container_name: worldcup-bet-2026-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-worldcup_ai}
+      POSTGRES_USER: ${POSTGRES_USER:-worldcup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-worldcup} -d ${POSTGRES_DB:-worldcup_ai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

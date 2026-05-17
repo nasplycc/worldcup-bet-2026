@@ -1,318 +1,253 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI智球 - 2026世界杯AI大数据预测平台</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI智球 · 赛事看板</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  :root{
-    --bg:#080c18;--bg2:#0e1225;--card:rgba(255,255,255,0.03);
-    --card-border:rgba(255,255,255,0.06);--card-hover:rgba(255,255,255,0.06);
-    --text:#f0f2f8;--text2:#8a91a6;--text3:#565d72;
-    --accent:#5b6cf7;--accent2:#8b9cff;--accent-bg:rgba(91,108,247,0.1);
-    --green:#00e89d;--green-bg:rgba(0,232,157,0.08);
-    --amber:#ffc94c;--amber-bg:rgba(255,201,76,0.08);
-    --red:#ff5c6a;--nav-bg:rgba(8,12,24,0.85);
-    --shadow:0 8px 32px rgba(0,0,0,0.35);
-    --radius:12px;
-  }
-  [data-theme="light"]{
-    --bg:#f5f7fb;--bg2:#ffffff;--card:#ffffff;
-    --card-border:#e4e7ef;--card-hover:#f8f9fc;
-    --text:#1a1f2e;--text2:#64748b;--text3:#94a3b8;
-    --accent:#4f5de5;--accent2:#6b78f5;--accent-bg:rgba(79,93,229,0.06);
-    --green:#10b981;--green-bg:rgba(16,185,129,0.06);
-    --amber:#f59e0b;--amber-bg:rgba(245,158,11,0.06);
-    --red:#ef4444;--nav-bg:rgba(245,247,251,0.88);
-    --shadow:0 8px 32px rgba(0,0,0,0.06);
-  }
-  html{scroll-behavior:smooth}
-  body{font-family:'Noto Sans SC','Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;transition:background .4s,color .4s;overflow-x:hidden}
-
-  /* ===== NAV ===== */
-  .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--nav-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--card-border);padding:0 2rem;height:56px;display:flex;align-items:center;justify-content:space-between;transition:background .4s}
-  .nav-logo{font-size:1.1rem;font-weight:900;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:.45rem}
-  .nav-logo .dot{color:var(--accent)}
-  .nav-r{display:flex;align-items:center;gap:1.25rem}
-  .nav-links{display:flex;align-items:center;gap:1.5rem;list-style:none}
-  .nav-links a{color:var(--text2);text-decoration:none;font-size:.82rem;font-weight:500;transition:color .2s}
-  .nav-links a:hover{color:var(--text)}
-  .nav-btn{background:var(--accent);color:#fff;padding:.4rem 1.2rem;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:all .2s;border:none;cursor:pointer}
-  .nav-btn:hover{background:var(--accent2);box-shadow:0 4px 16px rgba(91,108,247,.3)}
-  .theme-btn{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--card-border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;transition:all .2s}
-  .theme-btn:hover{border-color:var(--accent);background:var(--accent-bg)}
-
-  /* ===== HERO ===== */
-  .hero{min-height:92vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:7rem 2rem 4.5rem;position:relative;overflow:hidden}
-  .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 55% 45% at 50% 20%,rgba(91,108,247,.10) 0%,transparent 65%);pointer-events:none}
-  .hero-deco{position:absolute;pointer-events:none;opacity:.035;font-size:10rem;color:var(--accent);top:8%;right:-1%;transform:rotate(-15deg)}
-  .hero-deco2{position:absolute;pointer-events:none;opacity:.025;font-size:7rem;color:var(--accent);bottom:12%;left:-2%;transform:rotate(20deg)}
-  .hero-inner{position:relative;z-index:2;max-width:720px}
-  .hero-tag{display:inline-flex;align-items:center;gap:.45rem;background:var(--green-bg);border:1px solid rgba(0,232,157,.10);padding:.3rem .85rem;border-radius:999px;font-size:.72rem;color:var(--green);font-weight:600;margin-bottom:1.5rem}
-  .hero-tag .ldot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  .hero h1{font-size:clamp(2.2rem,5.5vw,3.5rem);font-weight:900;line-height:1.15;margin-bottom:1.125rem;letter-spacing:-.03em}
-  .hero h1 em{font-style:normal;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .hero p{font-size:1.05rem;color:var(--text2);max-width:500px;margin:0 auto 2rem;line-height:1.8}
-  .hero-btns{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
-  .btn{display:inline-flex;align-items:center;gap:.35rem;padding:.7rem 1.875rem;border-radius:10px;font-size:.9rem;font-weight:700;text-decoration:none;transition:all .2s;border:none;cursor:pointer}
-  .btn-p{background:var(--accent);color:#fff}
-  .btn-p:hover{background:var(--accent2);box-shadow:0 4px 24px rgba(91,108,247,.35);transform:translateY(-1px)}
-  .btn-o{background:transparent;color:var(--text);border:1px solid var(--card-border)}
-  .btn-o:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
-
-  /* ===== STATS ===== */
-  .stats{display:grid;grid-template-columns:repeat(5,1fr);max-width:800px;margin:-1.75rem auto 0;position:relative;z-index:3;background:var(--card);backdrop-filter:blur(10px);border-radius:14px;border:1px solid var(--card-border);overflow:hidden;box-shadow:var(--shadow);transition:background .4s}
-  .stat{padding:1.375rem .75rem;text-align:center}
-  .stat+.stat{border-left:1px solid var(--card-border)}
-  .stat-v{font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-variant-numeric:tabular-nums;line-height:1}
-  .stat-l{font-size:.65rem;color:var(--text3);margin-top:.3rem;text-transform:uppercase;letter-spacing:.06em}
-
-  /* ===== SECTION ===== */
-  .sec{padding:4.5rem 2rem;max-width:1060px;margin:0 auto}
-  .sec-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:700;margin-bottom:.5rem}
-  .sec-title{font-size:clamp(1.5rem,3.5vw,2.1rem);font-weight:900;margin-bottom:.5rem;line-height:1.2;letter-spacing:-.02em}
-  .sec-desc{font-size:.9rem;color:var(--text2);max-width:460px;margin-bottom:2.25rem;line-height:1.7}
-
-  /* ===== FEATURES ===== */
-  .feat-g{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
-  .feat{background:var(--card);backdrop-filter:blur(10px);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.75rem 1.5rem;transition:all .3s}
-  .feat:hover{border-color:rgba(91,108,247,.15);background:var(--card-hover);transform:translateY(-2px);box-shadow:var(--shadow)}
-  .feat-i{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;margin-bottom:1rem;background:var(--accent-bg)}
-  .feat h3{font-size:.95rem;font-weight:700;margin-bottom:.35rem}
-  .feat p{font-size:.8rem;color:var(--text2);line-height:1.65}
-
-  /* ===== HOW ===== */
-  .how-sec{padding:4.5rem 2rem;background:var(--bg2);border-top:1px solid var(--card-border);border-bottom:1px solid var(--card-border);transition:background .4s}
-  .how-in{max-width:1060px;margin:0 auto}
-  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:2rem}
-  .fs{background:var(--card);backdrop-filter:blur(10px);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.75rem 1.125rem;text-align:center;transition:all .3s}
-  .fs:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
-  .fs-n{width:32px;height:32px;border-radius:10px;margin:0 auto .75rem;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2))}
-  .fs h4{font-size:.88rem;font-weight:700;margin-bottom:.25rem}
-  .fs p{font-size:.75rem;color:var(--text3);line-height:1.6}
-
-  /* ===== MATCHES ===== */
-  .mg{display:grid;grid-template-columns:repeat(2,1fr);gap:.625rem}
-  .mc{background:var(--card);backdrop-filter:blur(10px);border:1px solid var(--card-border);border-radius:10px;padding:1rem 1.125rem;display:flex;align-items:center;gap:.875rem;transition:all .25s}
-  .mc:hover{border-color:rgba(91,108,247,.15);background:var(--card-hover)}
-  .mf{font-size:1.35rem;flex-shrink:0}
-  .mi{flex:1}
-  .mr{display:flex;align-items:center;gap:.35rem;font-size:.88rem;font-weight:700}
-  .mr .vs{color:var(--text3);font-size:.6rem;font-weight:500;padding:0 .25rem}
-  .mm{font-size:.65rem;color:var(--text3);margin-top:.15rem}
-  .mtc{text-align:right;flex-shrink:0;min-width:78px}
-  .md2{font-size:.65rem;color:var(--text3)}
-  .mt{font-size:.82rem;font-weight:800}
-  .mtag{display:inline-block;padding:.125rem .4rem;border-radius:4px;font-size:.55rem;font-weight:700;margin-top:.15rem}
-  .t-ok{background:var(--green-bg);color:var(--green)}
-  .t-w{background:var(--amber-bg);color:var(--amber)}
-
-  /* ===== DEMO ===== */
-  .demo-sec{padding:4.5rem 2rem;background:var(--bg2);border-top:1px solid var(--card-border);border-bottom:1px solid var(--card-border);transition:background .4s}
-  .demo-in{max-width:1060px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:center}
-  .dl{list-style:none}
-  .dl li{display:flex;align-items:flex-start;gap:.875rem;padding:.875rem 0;border-bottom:1px solid var(--card-border)}
-  .dl li:last-child{border-bottom:none}
-  .di{width:38px;height:38px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.1rem;background:var(--accent-bg)}
-  .dt h4{font-size:.88rem;font-weight:700;margin-bottom:.1rem}
-  .dt p{font-size:.78rem;color:var(--text2);line-height:1.55}
-  .chat{background:var(--card);backdrop-filter:blur(10px);border:1px solid var(--card-border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);transition:background .4s}
-  .chat-hd{padding:.625rem 1rem;border-bottom:1px solid var(--card-border);font-size:.78rem;font-weight:600;color:var(--accent);display:flex;align-items:center;gap:.5rem}
-  .chat-bd{padding:1rem}
-  .cm{padding:.625rem .875rem;border-radius:8px;margin-bottom:.5rem;font-size:.8rem;line-height:1.6;max-width:90%}
-  .cm.u{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;margin-left:auto;border-bottom-right-radius:4px;font-weight:500}
-  .cm.b{background:var(--bg);border:1px solid var(--card-border);border-bottom-left-radius:4px}
-  .cm .g{color:var(--green);font-weight:600}.cm .a{color:var(--amber);font-weight:600}.cm .r{color:var(--red);font-weight:600}
-  .cm b{font-weight:700}
-
-  /* ===== PRICING ===== */
-  .price-sec{padding:4.5rem 2rem;max-width:1060px;margin:0 auto;text-align:center}
-  .pg{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2.25rem;text-align:left}
-  .pc{background:var(--card);backdrop-filter:blur(10px);border:1px solid var(--card-border);border-radius:14px;padding:1.75rem 1.375rem;position:relative;transition:all .3s}
-  .pc:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
-  .pc.pro{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow)}
-  .pc.pro::before{content:'最受欢迎';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:.2rem .75rem;border-radius:999px;font-size:.65rem;font-weight:700}
-  .pc h3{font-size:1rem;font-weight:700;margin-bottom:.2rem}
-  .pc .pd{font-size:.75rem;color:var(--text3);margin-bottom:.75rem}
-  .pv{font-size:2rem;font-weight:900;margin:.375rem 0 .05rem}
-  .pv span{font-size:.75rem;font-weight:400;color:var(--text3)}
-  .pf{list-style:none;margin:1rem 0 1.25rem}
-  .pf li{font-size:.8rem;color:var(--text2);padding:.25rem 0;display:flex;align-items:center;gap:.4rem}
-  .pf li::before{content:'✓';color:var(--green);font-weight:800;font-size:.8rem}
-  .pb{display:block;width:100%;text-align:center;padding:.625rem;border-radius:10px;font-size:.85rem;font-weight:700;text-decoration:none;transition:all .2s;border:none;cursor:pointer}
-  .pb.a{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
-  .pb.a:hover{box-shadow:0 4px 24px rgba(91,108,247,.35)}
-  .pb.o{background:transparent;color:var(--text);border:1px solid var(--card-border)}
-  .pb.o:hover{border-color:var(--accent);color:var(--accent)}
-
-  /* ===== FOOTER ===== */
-  footer{background:var(--bg2);border-top:1px solid var(--card-border);padding:1.75rem 2rem;text-align:center;transition:background .4s}
-  footer p{font-size:.72rem;color:var(--text3)}
-  footer .d{margin-top:.35rem;font-size:.62rem;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.5}
-
-  /* ===== BACK TO TOP ===== */
-  .bt{position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:40px;height:40px;border-radius:10px;background:var(--accent);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;box-shadow:0 4px 16px rgba(91,108,247,.3);opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
-  .bt.show{opacity:1;transform:translateY(0);pointer-events:auto}
-  .bt:hover{background:var(--accent2);transform:translateY(-2px)}
-
-  @media(max-width:768px){
-    .feat-g,.flow,.pg{grid-template-columns:1fr}
-    .mg,.demo-in{grid-template-columns:1fr}
-    .stats{grid-template-columns:repeat(3,1fr)}
-    .nav-links{display:none}
-    .hero{min-height:auto;padding:6rem 1.25rem 4rem}
-    .hero h1{font-size:2rem}
-    .hero-deco,.hero-deco2{display:none}
-    .sec,.how-sec,.demo-sec,.price-sec{padding:3.5rem 1.25rem}
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  color-scheme:dark;
+  --bg:#0f141a;--bar:#121820;--surface:#171e26;--surface-2:#1d2630;--card:#202933;
+  --line:#283440;--line-soft:#23303b;--text:#edf3f8;--text-strong:#fff;--muted:#8fa2b5;
+  --blue:#2d8cff;--blue-soft:#0d3c62;--green:#2bc276;--red:#ef4e55;--shadow:0 14px 32px rgba(0,0,0,.22)
+}
+body.light{
+  color-scheme:light;
+  --bg:#eef3f8;--bar:#ffffff;--surface:#ffffff;--surface-2:#f4f7fb;--card:#ffffff;
+  --line:#cfd9e5;--line-soft:#e1e8f0;--text:#172331;--text-strong:#0b1622;--muted:#52677a;
+  --blue:#1769e0;--blue-soft:#e6f0ff;--green:#0f7a45;--red:#c9363d;--shadow:0 10px 28px rgba(22,35,49,.10)
+}
+html,body{min-height:100%;font-family:'Noto Sans SC',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+body{padding-top:72px}button,input{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:50;height:72px;background:var(--bar);border-bottom:1px solid var(--line-soft);display:grid;grid-template-columns:220px minmax(260px,760px) auto;align-items:center;gap:18px;padding:0 28px}
+.logo{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:800;white-space:nowrap}.logo svg{width:31px;height:31px}.logo small{font-size:12px;color:#9fb4c8;font-weight:700;margin-left:2px}
+.search{height:42px;background:#1b232c;border:1px solid var(--line);border-radius:10px;padding:0 14px;display:flex;align-items:center;gap:10px;color:var(--muted);min-width:0;white-space:nowrap}.search input{width:100%;min-width:0;background:transparent;border:0;outline:0;color:var(--text);font-size:15px}.search input::placeholder{color:var(--muted)}.search-label{white-space:nowrap;flex:none}
+.auth{display:flex;align-items:center;gap:10px;justify-content:flex-end}.auth button{height:35px;border-radius:9px;padding:0 16px;font-weight:700;white-space:nowrap}.login{border:1px solid #3a4653;background:transparent;color:#dce7f0}.signup{border:1px solid var(--blue);background:var(--blue);color:white}.toggle-group{display:flex;height:35px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface-2)}.toggle-group button{height:33px;border:0;border-radius:0;padding:0 10px;background:transparent;color:var(--muted);font-size:13px}.toggle-group button.active{background:var(--blue-soft);color:#49b2ff}.light .login{color:var(--text);border-color:#b8c6d5;background:#fff}.light .signup{box-shadow:0 5px 14px rgba(23,105,224,.18)}.light .toggle-group{background:#f3f7fb;border-color:#cad7e4}.light .toggle-group button{color:#52677a}.light .toggle-group button.active{background:#dbeafe;color:#0f5ec7}
+.wrap{max-width:1540px;margin:0 auto;padding:24px 28px 56px}.board-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}.board-head h1{font-size:24px;line-height:1.2;font-weight:800}.summary{color:var(--muted);font-size:13px;font-weight:700;white-space:nowrap}
+.league-tabs,.sub-filters,.status-tabs{display:flex;gap:10px;overflow:auto;scrollbar-width:none}.league-tabs::-webkit-scrollbar,.sub-filters::-webkit-scrollbar,.status-tabs::-webkit-scrollbar{display:none}
+.league-tabs{margin-bottom:12px}.sub-filters{align-items:center;margin-bottom:22px}.year-select{height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--text);padding:0 12px;font-size:14px;font-weight:700;outline:0;white-space:nowrap}
+.tab{height:36px;padding:0 15px;border:0;background:transparent;color:#8fa3b7;border-radius:8px;font-size:14px;font-weight:700;white-space:nowrap}.tab.active{background:var(--blue-soft);color:#49b2ff}.light .tab{color:#5c7083}.light .tab.active{background:#dbeafe;color:#0f5ec7}
+.section-block{margin-top:22px}.section-title{font-size:17px;font-weight:800;margin-bottom:12px;color:var(--text-strong)}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.match-card{background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:190px;padding:14px;display:grid;grid-template-rows:auto 1fr auto;gap:12px;box-shadow:var(--shadow)}
+.card-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;font-weight:700}.card-status{color:#77d59b}.card-teams{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}.card-team{text-align:center;min-width:0}.team-code{height:28px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;margin-bottom:7px;color:#d8e2eb;font-weight:800}.team-code.text{font-size:13px;letter-spacing:.4px}.card-name{font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-time{text-align:center;min-width:82px;color:#d8e2eb;font-size:13px;line-height:1.55}.scoreline{display:block;font-size:23px;line-height:1.2;color:#fff;font-weight:800;margin-bottom:3px}.card-ai{border-top:1px solid rgba(255,255,255,.08);padding-top:10px;font-size:13px;color:#a7b6c5;line-height:1.5}.ai-line{display:flex;justify-content:space-between;gap:10px;margin-top:5px;font-weight:700}.ai-line span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ai-line span:last-child{color:#64d69a;white-space:nowrap}.empty{border:1px dashed var(--line);border-radius:12px;padding:48px;text-align:center;color:var(--muted);grid-column:1/-1}
+.backtop{position:fixed;right:22px;bottom:22px;z-index:60;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);color:var(--text);font-size:22px;line-height:1;box-shadow:var(--shadow);opacity:0;pointer-events:none;transform:translateY(8px);transition:.18s ease}.backtop.show{opacity:1;pointer-events:auto;transform:translateY(0)}
+.auth-modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(5,10,16,.62);padding:20px}.auth-modal.show{display:flex}.auth-panel{width:min(420px,100%);background:var(--bar);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:22px}.auth-panel h2{font-size:20px;margin-bottom:16px}.auth-form{display:grid;gap:12px}.auth-form label{display:grid;gap:6px;color:var(--muted);font-size:13px;font-weight:700}.auth-form input{height:42px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--text);padding:0 12px;outline:0}.auth-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}.auth-actions button{height:36px;border-radius:9px;padding:0 14px;font-weight:800}.auth-cancel{border:1px solid var(--line);background:transparent;color:var(--text)}.auth-submit{border:1px solid var(--blue);background:var(--blue);color:#fff}.auth-message{min-height:18px;color:var(--muted);font-size:13px}.auth-message.error{color:var(--red)}.auth-message.ok{color:var(--green)}
+.light .topbar{box-shadow:0 1px 0 rgba(18,32,46,.04),0 10px 26px rgba(18,32,46,.06)}.light .logo small{color:#64788b}.light .search{background:#f4f7fb;border-color:#cbd8e5;color:#52677a}.light .year-select{background:#fff;border-color:#cbd8e5;color:#172331}.light .match-card{background:#fff;border-color:#d7e1eb;box-shadow:0 10px 24px rgba(23,35,49,.08)}.light .card-meta{color:#657789}.light .card-status{color:#0f7a45}.light .team-code{color:#203142}.light .card-time{color:#34485c}.light .scoreline{color:#0b1622}.light .card-ai{border-top-color:#e2e9f1;color:#52677a}.light .ai-line span:last-child{color:#0f7a45}.light .empty{background:#fff;border-color:#cfd9e5;color:#5c7083}
+@media(max-width:1180px){.topbar{grid-template-columns:190px 1fr auto}.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.board-head{display:block}.summary{display:block;margin-top:10px}}
+@media(max-width:820px){.topbar{grid-template-columns:180px 1fr}.auth{grid-column:1/3;justify-content:flex-start}.topbar{height:116px;grid-template-rows:40px 42px}body{padding-top:116px}.search{grid-column:2;grid-row:1}.wrap{padding-top:18px}}
+@media(max-width:680px){body{padding-top:158px}.topbar{height:158px;grid-template-columns:1fr;grid-template-rows:34px 40px 36px;padding:10px 14px}.logo{font-size:20px}.logo small{display:none}.auth{grid-column:1;grid-row:3;overflow:auto;justify-content:flex-start}.auth button{height:31px;padding:0 11px}.toggle-group{height:31px}.toggle-group button{height:29px;padding:0 9px}.search{grid-column:1;grid-row:2;height:40px}.wrap{padding:18px 14px 44px}.cards{grid-template-columns:1fr}.board-head h1{font-size:22px}.card-teams{gap:8px}.card-flag{font-size:27px}.card-name{font-size:15px}.card-time{min-width:66px}.tab{padding:0 12px}.backtop{right:14px;bottom:14px}}
+@media(max-width:420px){.logo svg{width:28px;height:28px}.card-name{font-size:14px}}
 </style>
 </head>
 <body>
-
-<nav class="nav">
-  <a href="#" class="nav-logo">⚽ AI<span class="dot">智球</span></a>
-  <div class="nav-r">
-    <ul class="nav-links">
-      <li><a href="#features">功能</a></li>
-      <li><a href="#matches">赛事</a></li>
-      <li><a href="#how">原理</a></li>
-      <li><a href="#pricing">方案</a></li>
-    </ul>
-    <div class="theme-btn" id="themeToggle" title="切换主题">🌙</div>
-    <a href="#" class="nav-btn">免费体验</a>
-  </div>
-</nav>
-
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-deco">⚽</div>
-  <div class="hero-deco2">🏆</div>
-  <div class="hero-inner">
-    <div class="hero-tag"><span class="ldot"></span> 2026 世界杯 · AI 大数据预测</div>
-    <h1>用 <em>AI 大模型</em><br>预测世界杯赛事走向</h1>
-    <p>融合海量历史数据、实时市场指数与 AI 深度学习模型，为您提供专业级赛事预测与数据分析服务。</p>
-    <div class="hero-btns">
-      <a href="#matches" class="btn btn-p">查看今日预测 →</a>
-      <a href="#features" class="btn btn-o">了解更多</a>
+<header class="topbar">
+  <a class="logo" href="/"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 5 55 18v28L32 59 9 46V18L32 5Z" fill="#132337" stroke="#55a7ff" stroke-width="4"/><path d="M32 15v34M18 23l28 18M46 23 18 41" stroke="#8fd3ff" stroke-width="4" stroke-linecap="round"/></svg><span>AI智球</span><small>赛事研究</small></a>
+  <label class="search"><span class="search-label" data-i18n="search">搜索</span><input id="searchInput" placeholder="球队、赛事、比赛时间、AI候选"></label>
+  <div class="auth">
+    <div class="toggle-group" aria-label="页面显示模式">
+      <button data-theme="dark" class="active">黑夜</button>
+      <button data-theme="light">白天</button>
     </div>
-  </div>
-</section>
-
-<!-- STATS -->
-<div class="stats">
-  <div class="stat"><div class="stat-v">104</div><div class="stat-l">赛事覆盖</div></div>
-  <div class="stat"><div class="stat-v">48</div><div class="stat-l">球队画像</div></div>
-  <div class="stat"><div class="stat-v">10维</div><div class="stat-l">AI 评估模型</div></div>
-  <div class="stat"><div class="stat-v">7×24h</div><div class="stat-l">自动运行</div></div>
-  <div class="stat"><div class="stat-v">99.2%</div><div class="stat-l">数据准确率</div></div>
-</div>
-
-<!-- FEATURES -->
-<section class="sec" id="features">
-  <div class="sec-label">核心功能</div>
-  <div class="sec-title">不只是数据，是 AI 洞察</div>
-  <div class="sec-desc">从数据采集到 AI 深度分析，一站式覆盖世界杯期间所有核心赛事分析场景。</div>
-  <div class="feat-g">
-    <div class="feat"><div class="feat-i">📊</div><h3>实时指数追踪</h3><p>自动追踪全球市场指数变化，捕捉显著波动信号，为 AI 分析提供最新市场动态数据。</p></div>
-    <div class="feat"><div class="feat-i">🧠</div><h3>AI 深度学习</h3><p>基于大语言模型与机器学习算法，自动检索最新赛事信息，结合 10 维球队画像生成分析报告。</p></div>
-    <div class="feat"><div class="feat-i">🔔</div><h3>实时推送</h3><p>重要赛事数据更新时自动推送提醒，不错过任何关键信息。</p></div>
-    <div class="feat"><div class="feat-i">📋</div><h3>球队能力画像</h3><p>为 48 支球队建立 10 维能力模型：攻击力、防守稳定性、大赛经验、阵容深度等。</p></div>
-    <div class="feat"><div class="feat-i">🔄</div><h3>动态模型刷新</h3><p>临场信息触发刷新条件时，AI 模型自动重新评估并调整预测权重。</p></div>
-    <div class="feat"><div class="feat-i">📈</div><h3>赛后复盘</h3><p>比赛结束后自动结算预测准确率，生成复盘报告，持续优化模型参数。</p></div>
-  </div>
-</section>
-
-<!-- HOW -->
-<div class="how-sec" id="how">
-  <div class="how-in">
-    <div class="sec-label">工作原理</div>
-    <div class="sec-title">四层 AI 分析流水线</div>
-    <div class="sec-desc">数据采集 → 特征工程 → 模型推理 → 报告输出，全自动无人值守运行。</div>
-    <div class="flow">
-      <div class="fs"><div class="fs-n">1</div><h4>数据采集</h4><p>同步 FIFA 赛程，采集市场指数，建立 48 支球队画像数据库</p></div>
-      <div class="fs"><div class="fs-n">2</div><h4>特征工程</h4><p>基于机器学习算法提取关键特征，生成候选分析方向</p></div>
-      <div class="fs"><div class="fs-n">3</div><h4>AI 推理</h4><p>大模型联网搜索最新信息，结合评估模型做综合深度分析</p></div>
-      <div class="fs"><div class="fs-n">4</div><h4>报告输出</h4><p>生成结构化报告并自动归档，赛后复盘验证预测准确率</p></div>
+    <div class="toggle-group" aria-label="语言">
+      <button data-lang="zh" class="active">中文</button>
+      <button data-lang="en">EN</button>
     </div>
+    <button class="login" id="loginBtn" data-i18n="login">登录</button><button class="signup" id="signupBtn" data-i18n="signup">注册</button>
   </div>
-</div>
+</header>
 
-<!-- MATCHES -->
-<section class="sec" id="matches">
-  <div class="sec-label">赛事预览</div>
-  <div class="sec-title">焦点对阵</div>
-  <div class="sec-desc">48 支球队，104 场精彩对决。以下为系统收录的部分焦点赛事。</div>
-  <div class="mg" id="matchGrid"></div>
-</section>
-
-<!-- DEMO -->
-<div class="demo-sec">
-  <div class="demo-in">
-    <div>
-      <div class="sec-label">AI 分析演示</div>
-      <div class="sec-title">像专家一样思考<br>但比专家更快</div>
-      <div class="sec-desc" style="margin-bottom:1.25rem">AI 大模型主动搜索最新伤停信息、阵容变化、战术分析，结合球队画像做出综合判断。</div>
-      <ul class="dl">
-        <li><div class="di">🔍</div><div class="dt"><h4>主动联网搜索</h4><p>自动检索最新新闻、伤停、阵容信息，不依赖人工输入</p></div></li>
-        <li><div class="di">⚖️</div><div class="dt"><h4>多维度交叉验证</h4><p>数据模型 + 新闻面 + 市场动态，三维交叉验证提高准确度</p></div></li>
-        <li><div class="di">🎯</div><div class="dt"><h4>结构化输出</h4><p>Markdown 与 JSON 双格式报告，方便后续分析与展示</p></div></li>
-      </ul>
+<main class="wrap">
+  <section>
+    <div class="board-head">
+      <h1 data-i18n="board">赛事看板</h1>
+      <span class="summary" id="summary">加载中...</span>
     </div>
-    <div class="chat">
-      <div class="chat-hd">🤖 AI 赛事分析引擎</div>
-      <div class="chat-bd">
-        <div class="cm u">分析 阿根廷 vs 法国</div>
-        <div class="cm b"><b>🔍 正在联网检索...</b><br>已获取 12 条最新信息：<br>• <span class="a">伤停更新</span>：阿根廷主力中场训练中轻微拉伤<br>• <span class="a">阵容预测</span>：法国可能轮换 3 名首发<br>• <span class="a">战术分析</span>：中场控制将是关键胜负手</div>
-        <div class="cm b"><b>📊 AI 分析结论：</b><br>阿根廷（精英级）vs 法国（精英级）<br>攻击力：92 vs 91 | 防守：86 vs 88<br><br><span class="g">关键发现：</span>法国阵容深度（93）明显占优<br><span class="r">风险因素：</span>阿根廷中场伤停需关注<br><br>综合评估：<span class="a">实力接近，平局概率值得关注</span></div>
+    <div class="league-tabs" id="leagueTabs">
+        <button class="tab active" data-league="worldcup" data-i18n="worldcup">世界杯</button>
+        <button class="tab" data-league="epl" data-i18n="epl">英超</button>
+    </div>
+    <div class="sub-filters">
+      <select class="year-select" id="yearSelect" aria-label="年份">
+        <option value="2026">2026年</option>
+      </select>
+      <div class="status-tabs" id="statusTabs">
+        <button class="tab active" data-status="all" data-i18n="all">全部</button>
+        <button class="tab" data-status="upcoming" data-i18n="upcoming">未开始</button>
+        <button class="tab" data-status="live" data-i18n="live">进行中</button>
+        <button class="tab" data-status="finished" data-i18n="finished">已结束</button>
       </div>
     </div>
+    <div id="sections"></div>
+  </section>
+</main>
+<button class="backtop" id="backTop" aria-label="返回顶部">↑</button>
+<div class="auth-modal" id="authModal" aria-hidden="true">
+  <div class="auth-panel">
+    <h2 id="authTitle">登录</h2>
+    <form class="auth-form" id="authForm">
+      <label><span id="displayNameLabel">显示名称</span><input id="displayNameInput" autocomplete="name"></label>
+      <label><span id="emailLabel">邮箱</span><input id="emailInput" type="email" autocomplete="email" required></label>
+      <label><span id="passwordLabel">密码</span><input id="passwordInput" type="password" autocomplete="current-password" minlength="8" required></label>
+      <div class="auth-message" id="authMessage"></div>
+      <div class="auth-actions"><button type="button" class="auth-cancel" id="authCancel">取消</button><button type="submit" class="auth-submit" id="authSubmit">登录</button></div>
+    </form>
   </div>
 </div>
 
-<!-- PRICING -->
-<section class="price-sec" id="pricing">
-  <div class="sec-label">使用方案</div>
-  <div class="sec-title">选择适合你的方案</div>
-  <div class="sec-desc" style="margin-left:auto;margin-right:auto">世界杯期间，按需选择最适合你的使用方案。</div>
-  <div class="pg">
-    <div class="pc"><h3>小组赛阶段</h3><div class="pd">小组赛全程 · 约 20 天</div><div class="pv">¥19.9</div><ul class="pf"><li>小组赛全部赛事 AI 预测</li><li>球队基础画像查看</li><li>赛后复盘报告</li><li>消息推送提醒</li></ul><a href="#" class="pb o">立即解锁</a></div>
-    <div class="pc pro"><h3>全程通行证</h3><div class="pd">小组赛 + 淘汰赛 · 全程覆盖</div><div class="pv">¥49.9</div><ul class="pf"><li>104 场全部赛事 AI 预测</li><li>实时指数变动追踪</li><li>10 维球队深度画像</li><li>动态模型刷新</li><li>赛后复盘 + 准确率统计</li><li>历史数据导出</li></ul><a href="#" class="pb a">立即解锁</a></div>
-    <div class="pc"><h3>单场体验</h3><div class="pd">单场赛事 · 尝鲜体验</div><div class="pv">¥2.9 <span>/场</span></div><ul class="pf"><li>单场 AI 深度分析报告</li><li>球队画像对比</li><li>指数变动快照</li><li>赛后结果验证</li></ul><a href="#" class="pb o">立即体验</a></div>
-  </div>
-</section>
-
-<footer>
-  <p>© 2026 AI智球 · 智能赛事分析平台</p>
-  <p class="d">本平台仅供数据研究和学习使用，不构成任何赛事参与建议。数据分析结果仅供参考，请理性看待。</p>
-</footer>
-
-<button class="bt" id="backTop" title="返回顶部">↑</button>
-
 <script>
-const m=[
-  {h:"阿根廷",a:"法国",d:"06-18",t:"18:00",g:"A组",hf:"🇦🇷",af:"🇫🇷",s:1},
-  {h:"巴西",a:"英格兰",d:"06-20",t:"21:00",g:"B组",hf:"🇧🇷",af:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",s:1},
-  {h:"德国",a:"西班牙",d:"06-22",t:"15:00",g:"C组",hf:"🇩🇪",af:"🇪🇸",s:1},
-  {h:"葡萄牙",a:"荷兰",d:"06-24",t:"18:00",g:"D组",hf:"🇵🇹",af:"🇳🇱",s:0},
-  {h:"日本",a:"韩国",d:"06-25",t:"12:00",g:"E组",hf:"🇯🇵",af:"🇰🇷",s:0},
-  {h:"美国",a:"墨西哥",d:"06-26",t:"21:00",g:"F组",hf:"🇺🇸",af:"🇲🇽",s:1},
-  {h:"克罗地亚",a:"比利时",d:"06-27",t:"18:00",g:"G组",hf:"🇭🇷",af:"🇧🇪",s:0},
-  {h:"摩洛哥",a:"塞内加尔",d:"06-28",t:"15:00",g:"H组",hf:"🇲🇦",af:"🇸🇳",s:1}
-];
-const g=document.getElementById('matchGrid');
-m.forEach(x=>{g.innerHTML+=`<div class="mc"><span class="mf">${x.hf}</span><div class="mi"><div class="mr">${x.h} <span class="vs">VS</span> ${x.a}</div><div class="mm">${x.g}</div></div><div class="mtc"><div class="md2">${x.d}</div><div class="mt">${x.t}</div><span class="mtag ${x.s?'t-ok':'t-w'}">${x.s?'数据就绪':'采集中'}</span></div></div>`});
-
-const tog=document.getElementById('themeToggle'),html=document.documentElement;
-function setTheme(dark){html.setAttribute('data-theme',dark?'dark':'light');tog.textContent=dark?'🌙':'☀️';localStorage.setItem('theme',dark?'dark':'light')}
-tog.addEventListener('click',()=>setTheme(html.getAttribute('data-theme')!=='dark'));
-setTheme(true);
-
-const bt=document.getElementById('backTop');
-window.addEventListener('scroll',()=>bt.classList.toggle('show',window.scrollY>400),{passive:true});
-bt.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+let allMatches=[],sourceMeta={},currentLeague='worldcup',currentStatus='all',currentYear='2026',authMode='login';
+let currentLang=localStorage.getItem('ai-football-lang')||'zh';
+let currentTheme=localStorage.getItem('ai-football-theme')||'dark';
+let authToken=localStorage.getItem('ai-football-token')||'';
+let currentUser=null;
+const $=id=>document.getElementById(id);
+const dict={
+  zh:{search:'搜索',searchPlaceholder:'球队、赛事、比赛时间、AI候选',login:'登录',signup:'注册',logout:'退出',board:'赛事看板',worldcup:'世界杯',epl:'英超',all:'全部',upcoming:'未开始',live:'进行中',finished:'已结束',count:'共 {n} 场',source:'数据源',empty:'暂无匹配赛事',synced:'赛程已同步',pending:'待评估',oddsPending:'指数待开放',oddsReady:'指数已接入，等待 AI 复评',reviewPending:'等待 AI 复评',aiPending:'AI分析待接入',wcScheduleReady:'FIFA 官方赛程已同步，开售后再生成正式建议',eplPublicReady:'英超公开赛程已接入，等待指数和球队模型补齐后生成建议',eplApiReady:'英超 API 数据已接入，AI分析暂未接入英超玩法',knockout:'淘汰赛',recent:'近期比赛',match:'比赛',round:'第 {n} 轮',group:'{g}组',rank:'{g}组第{r}',third:'小组第3（{g}组）',winner:'第{n}场胜者',runnerUp:'第{n}场负者',year:'2026年',statusLive:'进行中',statusFinished:'已结束',statusUpcoming:'未开始',displayName:'显示名称',email:'邮箱',password:'密码',cancel:'取消',authOk:'已登录',authError:'请求失败'},
+  en:{search:'Search',searchPlaceholder:'Team, competition, time, AI pick',login:'Log in',signup:'Sign up',logout:'Log out',board:'Match Board',worldcup:'World Cup',epl:'Premier League',all:'All',upcoming:'Upcoming',live:'Live',finished:'Finished',count:'{n} matches',source:'Source',empty:'No matches found',synced:'Schedule synced',pending:'Pending',oddsPending:'Index pending',oddsReady:'Odds connected. Awaiting AI review.',reviewPending:'Awaiting AI review',aiPending:'AI analysis pending',wcScheduleReady:'FIFA official schedule is synced. Formal recommendations will be generated after the market opens.',eplPublicReady:'Premier League public schedule is connected. Recommendations will be generated after index data and team models are ready.',eplApiReady:'Premier League API data is connected. AI recommendation logic for this competition is pending.',knockout:'Knockout',recent:'Recent Matches',match:'Matches',round:'Matchday {n}',group:'Group {g}',rank:'Group {g} #{r}',third:'Third place ({g})',winner:'Winner of Match {n}',runnerUp:'Runner-up of Match {n}',year:'2026',statusLive:'Live',statusFinished:'Finished',statusUpcoming:'Upcoming',displayName:'Display name',email:'Email',password:'Password',cancel:'Cancel',authOk:'Signed in',authError:'Request failed'}
+};
+function t(key,vars={}){let value=(dict[currentLang]&&dict[currentLang][key])||dict.zh[key]||key;for(const [k,v] of Object.entries(vars))value=value.replace(`{${k}}`,v);return value}
+const textMap={
+  '竞彩赔率待开售':'synced',
+  '赛程已同步':'synced',
+  'AI分析待接入':'aiPending',
+  '待评估':'pending',
+  '指数待开放':'oddsPending',
+  '指数已接入':'oddsReady',
+  '指数已接入，等待 AI 复评':'oddsReady',
+  '等待 AI 复评':'reviewPending',
+  'FIFA 官方赛程已同步，开售后再生成正式投注建议':'wcScheduleReady',
+  'FIFA 官方赛程已同步，开售后再生成正式建议':'wcScheduleReady',
+  '英超公开赛程已接入，等待指数和球队模型补齐后生成建议':'eplPublicReady',
+  '英超 API 数据已接入，竞彩分析暂未接入英超玩法':'eplApiReady',
+  '英超 API 数据已接入，AI分析暂未接入英超玩法':'eplApiReady'
+};
+function localizeText(value){if(!value)return '';if(currentLang==='zh')return value;return textMap[value]?t(textMap[value]):value}
+const nameMap={Mexico:'墨西哥','South Africa':'南非',France:'法国',Denmark:'丹麦',Argentina:'阿根廷',USA:'美国',Brazil:'巴西',Serbia:'塞尔维亚',Japan:'日本',Croatia:'克罗地亚',Korea:'韩国','Korea Republic':'韩国','Czech Republic':'捷克',Czechia:'捷克',England:'英格兰',Scotland:'苏格兰',Spain:'西班牙',Germany:'德国',Italy:'意大利',Portugal:'葡萄牙',Netherlands:'荷兰',Belgium:'比利时',Uruguay:'乌拉圭',Colombia:'哥伦比亚',Switzerland:'瑞士',Sweden:'瑞典',Norway:'挪威',Austria:'奥地利',Canada:'加拿大',Qatar:'卡塔尔',Australia:'澳大利亚',Morocco:'摩洛哥',Senegal:'塞内加尔',Ghana:'加纳',Cameroon:'喀麦隆',Nigeria:'尼日利亚',Egypt:'埃及',Tunisia:'突尼斯',Algeria:'阿尔及利亚','Saudi Arabia':'沙特阿拉伯',Iran:'伊朗','IR Iran':'伊朗',Iraq:'伊拉克',Uzbekistan:'乌兹别克斯坦',Jordan:'约旦','New Zealand':'新西兰','Bosnia and Herzegovina':'波黑','Cabo Verde':'佛得角','Congo DR':'刚果（金）','Curaçao':'库拉索',"Côte d'Ivoire":'科特迪瓦',Ecuador:'厄瓜多尔',Haiti:'海地',Panama:'巴拿马',Paraguay:'巴拉圭','Türkiye':'土耳其','Manchester City':'曼城','Manchester United':'曼联','Arsenal':'阿森纳','Liverpool':'利物浦',Chelsea:'切尔西',Tottenham:'热刺','Tottenham Hotspur':'热刺','Newcastle United':'纽卡斯尔联','Aston Villa':'阿斯顿维拉','West Ham United':'西汉姆联','Brighton and Hove Albion':'布莱顿','Brighton & Hove Albion':'布莱顿','Crystal Palace':'水晶宫',Everton:'埃弗顿','Nottingham Forest':'诺丁汉森林',Brentford:'布伦特福德',Fulham:'富勒姆','Wolverhampton Wanderers':'狼队',Wolves:'狼队',Bournemouth:'伯恩茅斯','AFC Bournemouth':'伯恩茅斯','Leeds United':'利兹联',Burnley:'伯恩利',Sunderland:'桑德兰'};
+const teamAliases={'Manchester City FC':'曼城','Manchester United FC':'曼联','Arsenal FC':'阿森纳','Liverpool FC':'利物浦','Chelsea FC':'切尔西','Tottenham Hotspur FC':'热刺','Newcastle United FC':'纽卡斯尔联','Aston Villa FC':'阿斯顿维拉','West Ham United FC':'西汉姆联','Brighton & Hove Albion FC':'布莱顿','Brighton and Hove Albion FC':'布莱顿','Crystal Palace FC':'水晶宫','Everton FC':'埃弗顿','Nottingham Forest FC':'诺丁汉森林','Brentford FC':'布伦特福德','Fulham FC':'富勒姆','Wolverhampton Wanderers FC':'狼队','AFC Bournemouth':'伯恩茅斯','AFC Bournemouth FC':'伯恩茅斯','Leeds United FC':'利兹联','Burnley FC':'伯恩利','Sunderland AFC':'桑德兰'};
+const flagMap={MEX:'🇲🇽',RSA:'🇿🇦',FRA:'🇫🇷',DEN:'🇩🇰',ARG:'🇦🇷',USA:'🇺🇸',BRA:'🇧🇷',SRB:'🇷🇸',JPN:'🇯🇵',CRO:'🇭🇷',KOR:'🇰🇷',CZE:'🇨🇿',ENG:'🏴',ESP:'🇪🇸',GER:'🇩🇪',ITA:'🇮🇹',POR:'🇵🇹',NED:'🇳🇱',BEL:'🇧🇪',URU:'🇺🇾',COL:'🇨🇴',SUI:'🇨🇭',SWE:'🇸🇪',NOR:'🇳🇴',CAN:'🇨🇦',QAT:'🇶🇦',AUS:'🇦🇺',MAR:'🇲🇦',SEN:'🇸🇳',GHA:'🇬🇭',CMR:'🇨🇲',NGA:'🇳🇬',EGY:'🇪🇬',TUN:'🇹🇳',ALG:'🇩🇿',KSA:'🇸🇦',IRN:'🇮🇷',IRQ:'🇮🇶',UZB:'🇺🇿',JOR:'🇯🇴',NZL:'🇳🇿'};
+const groupOrder='ABCDEFGHIJKL'.split('');
+const stageName={'First Stage':'小组赛','Round of 32':'三十二强','Round of 16':'十六强','Quarter-final':'四分之一决赛','Semi-final':'半决赛','Play-off for third place':'三四名决赛','Final':'决赛'};
+const stageNameEn={'First Stage':'Group Stage','Round of 32':'Round of 32','Round of 16':'Round of 16','Quarter-final':'Quarter-finals','Semi-final':'Semi-finals','Play-off for third place':'Third-place Play-off','Final':'Final'};
+async function fetchJson(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(url+' '+r.status);return await r.json()}
+async function loadMatches(){
+  try{
+    const d=await fetchJson('api/matches');
+    if(d.matches&&d.matches.length){sourceMeta=d.sources||{};return d.matches}
+  }catch(e){}
+  const merged=[];sourceMeta={};
+  for(const url of ['api/epl/matches','api/worldcup/matches','data/worldcup_matches.json']){
+    try{const d=await fetchJson(url);if(d.matches)merged.push(...d.matches)}catch(e){}
+  }
+  return merged;
+}
+function league(m){return m.league||m.competition||''}
+function leagueName(m){if(currentLang==='en'){if(isWC(m))return 'World Cup';if(isEPL(m))return 'Premier League'}return league(m)}
+function stageLabel(stage){return currentLang==='en'?(stageNameEn[stage]||stage):(stageName[stage]||stage)}
+function isWC(m){return league(m).includes('世界杯')||league(m).includes('World Cup')||String(m.competition||'').includes('World Cup')}
+function isEPL(m){return league(m).includes('英超')||league(m).includes('Premier League')||String(m.competition||'').includes('Premier League')}
+function zhName(value){
+  if(!value)return '';
+  if(currentLang==='en')return value;
+  if(teamAliases[value])return teamAliases[value];
+  if(nameMap[value])return nameMap[value];
+  const normalized=value.replace(/\s+(FC|AFC)$/,'').replace(/^AFC\s+/,'').replace(/\s+CF$/,'');
+  if(teamAliases[normalized])return teamAliases[normalized];
+  if(nameMap[normalized])return nameMap[normalized];
+  const groupRank=value.match(/^([123])([A-L])$/);
+  if(groupRank)return t('rank',{g:groupRank[2],r:groupRank[1]});
+  const third=value.match(/^3([A-L]+)$/);
+  if(third)return t('third',{g:third[1]});
+  const winner=value.match(/^W(\d+)$/);
+  if(winner)return t('winner',{n:winner[1]});
+  const runnerUp=value.match(/^RU(\d+)$/);
+  if(runnerUp)return t('runnerUp',{n:runnerUp[1]});
+  return value;
+}
+function home(m){return zhName(m.homeName||m.homeFull||m.home)}
+function away(m){return zhName(m.awayName||m.awayFull||m.away)}
+function teamCode(m,side){return (m[side]||'').toString().trim()}
+function conf(m){return Math.round(((m.pick&&m.pick.conf)||0)*100)}
+function pickLabel(m){return m.pick&&m.pick.conf>0?localizeText(m.pick.label):t('synced')}
+function pickDesc(m){return m.pick&&m.pick.reason?localizeText(m.pick.reason):(m.oddsAvailable?t('reviewPending'):t('oddsPending'))}
+function flag(code){return flagMap[code]||'⚽'}
+function dateText(m){return (m.date||'').slice(5).replace('-','月')+(m.date?'日':'')}
+function statusName(status){return status==='live'||status==='ht'?t('statusLive'):status==='finished'?t('statusFinished'):t('statusUpcoming')}
+function hasScore(m){return m.scoreH!==null&&m.scoreH!==undefined&&m.scoreW!==null&&m.scoreW!==undefined}
+function centerText(m){return hasScore(m)?`<span class="scoreline">${m.scoreH} - ${m.scoreW}</span>${dateText(m)}<br>${m.time||''}`:`${dateText(m)}<br>${m.time||'待定'}`}
+function groupTitle(m){
+  if(isWC(m)&&m.group){
+    const key=m.group.replace('Group ','');
+    return t('group',{g:key});
+  }
+  if(isWC(m))return stageLabel(m.stage)||t('knockout');
+  if(m.matchday)return t('round',{n:m.matchday});
+  if(m.date)return `${dateText(m)} ${t('match')}`;
+  return t('recent');
+}
+function groupRank(title){
+  const g=title.match(/^([A-L])组$/);
+  if(g)return groupOrder.indexOf(g[1]);
+  const stageRank={'小组赛':20,'三十二强':32,'十六强':40,'四分之一决赛':50,'半决赛':60,'三四名决赛':70,'决赛':80};
+  return stageRank[title]||100;
+}
+function sortMatches(list){return [...list].sort((a,b)=>`${a.date||''} ${a.time||''}`.localeCompare(`${b.date||''} ${b.time||''}`))}
+function matchText(m){return [league(m),m.stage,m.group,home(m),away(m),pickLabel(m),pickDesc(m),dateText(m)].join(' ').toLowerCase()}
+function selectedLeagueMatch(m){return currentLeague==='worldcup'?isWC(m):isEPL(m)}
+function selectedYearMatch(m){
+  if(currentLeague==='epl'&&currentYear==='2026')return (m.date||'')>='2025-08-01'&&(m.date||'')<='2026-05-31';
+  return (m.date||'').startsWith(currentYear);
+}
+function selectedStatusMatch(m){if(currentStatus==='all')return true;if(currentStatus==='live')return m.status==='live'||m.status==='ht';return m.status===currentStatus}
+function filtered(){
+  const q=$('searchInput').value.trim().toLowerCase();
+  return allMatches.filter(m=>selectedLeagueMatch(m)&&selectedYearMatch(m)&&selectedStatusMatch(m)&&(!q||matchText(m).includes(q)));
+}
+function render(){
+  const items=sortMatches(filtered());
+  $('summary').textContent=t('count',{n:items.length});
+  const groups=new Map();
+  for(const m of items){const title=groupTitle(m);if(!groups.has(title))groups.set(title,[]);groups.get(title).push(m)}
+  const ordered=[...groups.entries()].sort((a,b)=>groupRank(a[0])-groupRank(b[0])||a[0].localeCompare(b[0],'zh-CN'));
+  $('sections').innerHTML=ordered.map(([title,matches])=>`<section class="section-block"><h2 class="section-title">${title}</h2><div class="cards">${matches.map(card).join('')}</div></section>`).join('')||`<div class="cards"><div class="empty">${t('empty')}</div></div>`;
+}
+function card(m){
+  const pct=conf(m);
+  const homeTop=isEPL(m)?`<div class="team-code text">${teamCode(m,'home')}</div>`:`<div class="team-code">${flag(m.home)}</div>`;
+  const awayTop=isEPL(m)?`<div class="team-code text">${teamCode(m,'away')}</div>`:`<div class="team-code">${flag(m.away)}</div>`;
+  return `<article class="match-card"><div class="card-meta"><span>${stageLabel(m.stage)||leagueName(m)}</span><span class="card-status">${statusName(m.status)}</span></div><div class="card-teams"><div class="card-team">${homeTop}<div class="card-name">${home(m)}</div></div><div class="card-time">${centerText(m)}</div><div class="card-team">${awayTop}<div class="card-name">${away(m)}</div></div></div><div class="card-ai"><div>${pickDesc(m)}</div><div class="ai-line"><span>${pickLabel(m)}</span><span>${pct?pct+'%':t('pending')}</span></div></div></article>`;
+}
+function setLeague(value){currentLeague=value;document.querySelectorAll('[data-league]').forEach(el=>el.classList.toggle('active',el.dataset.league===value));render()}
+function setStatus(value){currentStatus=value;document.querySelectorAll('[data-status]').forEach(el=>el.classList.toggle('active',el.dataset.status===value));render()}
+function setTheme(value){currentTheme=value;localStorage.setItem('ai-football-theme',value);document.body.classList.toggle('light',value==='light');document.querySelectorAll('[data-theme]').forEach(el=>el.classList.toggle('active',el.dataset.theme===value))}
+function setLang(value){currentLang=value;localStorage.setItem('ai-football-lang',value);document.documentElement.lang=value==='en'?'en':'zh-CN';document.querySelectorAll('[data-lang]').forEach(el=>el.classList.toggle('active',el.dataset.lang===value));document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n)});$('searchInput').placeholder=t('searchPlaceholder');$('yearSelect').options[0].textContent=t('year');updateAuthText();render()}
+function updateAuthText(){ $('displayNameLabel').textContent=t('displayName');$('emailLabel').textContent=t('email');$('passwordLabel').textContent=t('password');$('authCancel').textContent=t('cancel');$('authTitle').textContent=t(authMode);$('authSubmit').textContent=t(authMode);if(currentUser){$('loginBtn').textContent=currentUser.displayName||currentUser.email;$('signupBtn').textContent=t('logout')}else{$('loginBtn').textContent=t('login');$('signupBtn').textContent=t('signup')}}
+function openAuth(mode){authMode=mode;$('authMessage').textContent='';$('authMessage').className='auth-message';$('displayNameInput').parentElement.style.display=mode==='signup'?'grid':'none';$('authModal').classList.add('show');$('authModal').setAttribute('aria-hidden','false');updateAuthText();setTimeout(()=>$('emailInput').focus(),0)}
+function closeAuth(){$('authModal').classList.remove('show');$('authModal').setAttribute('aria-hidden','true')}
+async function submitAuth(event){event.preventDefault();const payload={email:$('emailInput').value,password:$('passwordInput').value};if(authMode==='signup')payload.displayName=$('displayNameInput').value;const res=await fetch(`/api/auth/${authMode==='signup'?'register':'login'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await res.json().catch(()=>({}));if(!res.ok){$('authMessage').textContent=data.error||t('authError');$('authMessage').className='auth-message error';return}authToken=data.token;currentUser=data.user;localStorage.setItem('ai-football-token',authToken);$('authMessage').textContent=t('authOk');$('authMessage').className='auth-message ok';updateAuthText();setTimeout(closeAuth,400)}
+async function loadMe(){if(!authToken)return;const res=await fetch('/api/auth/me',{headers:{Authorization:`Bearer ${authToken}`}});if(!res.ok){localStorage.removeItem('ai-football-token');authToken='';currentUser=null;updateAuthText();return}const data=await res.json();currentUser=data.user;updateAuthText()}
+document.querySelectorAll('[data-league]').forEach(btn=>btn.addEventListener('click',()=>setLeague(btn.dataset.league)));
+document.querySelectorAll('[data-status]').forEach(btn=>btn.addEventListener('click',()=>setStatus(btn.dataset.status)));
+document.querySelectorAll('[data-theme]').forEach(btn=>btn.addEventListener('click',()=>setTheme(btn.dataset.theme)));
+document.querySelectorAll('[data-lang]').forEach(btn=>btn.addEventListener('click',()=>setLang(btn.dataset.lang)));
+$('loginBtn').addEventListener('click',()=>currentUser?null:openAuth('login'));
+$('signupBtn').addEventListener('click',()=>{if(currentUser){authToken='';currentUser=null;localStorage.removeItem('ai-football-token');updateAuthText()}else openAuth('signup')});
+$('authCancel').addEventListener('click',closeAuth);
+$('authModal').addEventListener('click',e=>{if(e.target===$('authModal'))closeAuth()});
+$('authForm').addEventListener('submit',submitAuth);
+$('yearSelect').addEventListener('change',e=>{currentYear=e.target.value;render()});
+$('searchInput').addEventListener('input',render);
+$('backTop').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+addEventListener('scroll',()=>$('backTop').classList.toggle('show',scrollY>360),{passive:true});
+async function refreshMatches(){allMatches=await loadMatches();render()}
+setTheme(currentTheme);
+setLang(currentLang);
+loadMe();
+refreshMatches();
+setInterval(refreshMatches,120000);
 </script>
 </body>
 </html>

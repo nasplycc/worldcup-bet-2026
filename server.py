@@ -7,24 +7,54 @@ from dotenv import load_dotenv
 load_dotenv()
 import os
 import time
+import jwt
+from urllib.parse import urlencode
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import requests
 from flask import Flask, jsonify, has_request_context, request, send_from_directory
+from sqlalchemy import select
 
 from frontend_data import merge_worldcup_frontend, recommendations_to_frontend, schedule_to_frontend
 from state import load_json
+from db import Match, User, UserPreference, db_counts, init_db, password_hash, seed_all, session_scope
 
 app = Flask(__name__, static_folder="docs", static_url_path="")
 ROOT = Path(__file__).resolve().parent
 
 # Config
 API_KEY = os.environ.get("FOOTBALL_DATA_API_KEY", "")
+ODDS_API_KEY = os.environ.get("THE_ODDS_API_KEY", "") or os.environ.get("ODDS_API_KEY", "")
+ODDS_API_REGIONS = os.environ.get("THE_ODDS_API_REGIONS", "eu")
+API_FOOTBALL_KEY = os.environ.get("API_FOOTBALL_KEY", "")
+JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-change-me")
+JWT_TTL_HOURS = int(os.environ.get("JWT_TTL_HOURS", "168"))
 BASE = "https://api.football-data.org/v4"
 OPENFOOTBALL_EPL_2025_26 = "https://openfootball.github.io/england/2025-26/1-premierleague.json"
+THE_ODDS_API_BASE = "https://api.the-odds-api.com/v4"
+API_FOOTBALL_BASE = "https://v3.football.api-sports.io"
 CACHE = {}
 CACHE_TTL = 60
+
+
+def bootstrap_database():
+    """Initialize DB on startup; retry a few times to handle DB container race conditions."""
+    retries, delay = 5, 3
+    last_exc = None
+    for attempt in range(1, retries + 1):
+        try:
+            return {"ok": True, "seeded": seed_all(), "counts": db_counts(), "error": ""}
+        except Exception as exc:
+            last_exc = exc
+            print(f"[DB] bootstrap attempt {attempt}/{retries} failed: {exc}")
+            if attempt < retries:
+                time.sleep(delay)
+    print(f"[DB] bootstrap failed after {retries} attempts: {last_exc}")
+    return {"ok": False, "seeded": {}, "counts": {}, "error": str(last_exc)}
+
+
+DB_STATUS = bootstrap_database()
 
 
 def fetch_with_cache(key, url, ttl=CACHE_TTL):
@@ -45,9 +75,127 @@ def fetch_with_cache(key, url, ttl=CACHE_TTL):
         return None
 
 
+def fetch_public_with_cache(key, url, ttl=CACHE_TTL):
+    now = time.time()
+    if key in CACHE and now - CACHE[key]["ts"] < ttl:
+        return CACHE[key]["data"]
+    try:
+        resp = requests.get(url, timeout=15)
+        if not resp.ok:
+            print(f"[API] {url.split('apiKey=')[0]}apiKey=*** -> {resp.status_code}: {resp.text[:200]}")
+            return None
+        data = resp.json()
+        CACHE[key] = {"data": data, "ts": now}
+        return data
+    except Exception as e:
+        print(f"[API Error] {e}")
+        return None
+
+
+def fetch_api_football_with_cache(key, url, ttl=CACHE_TTL):
+    now = time.time()
+    if key in CACHE and now - CACHE[key]["ts"] < ttl:
+        return CACHE[key]["data"]
+    try:
+        headers = {"x-apisports-key": API_FOOTBALL_KEY}
+        resp = requests.get(url, headers=headers, timeout=15)
+        if not resp.ok:
+            print(f"[API-Football] {url} -> {resp.status_code}: {resp.text[:200]}")
+            return None
+        data = resp.json()
+        CACHE[key] = {"data": data, "ts": now}
+        return data
+    except Exception as e:
+        print(f"[API-Football Error] {e}")
+        return None
+
+
 @app.route("/")
 def index():
     return send_from_directory("docs", "index.html")
+
+
+def user_payload(user):
+    return {
+        "id": user.id,
+        "email": user.email,
+        "displayName": user.display_name,
+        "role": user.role,
+        "status": user.status,
+    }
+
+
+def issue_token(user):
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user.id),
+        "email": user.email,
+        "role": user.role,
+        "iat": int(now.timestamp()),
+        "exp": int((now + timedelta(hours=JWT_TTL_HOURS)).timestamp()),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+
+def current_user_from_request():
+    header = request.headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return None
+    token = header.removeprefix("Bearer ").strip()
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        user_id = int(payload.get("sub", 0))
+    except Exception:
+        return None
+    with session_scope() as session:
+        return session.get(User, user_id)
+
+
+@app.route("/api/auth/register", methods=["POST"])
+def auth_register():
+    data = request.get_json(silent=True) or {}
+    email = str(data.get("email", "")).strip().lower()
+    password = str(data.get("password", ""))
+    display_name = str(data.get("displayName") or data.get("display_name") or "").strip()
+    if not email or "@" not in email:
+        return jsonify({"error": "Invalid email"}), 400
+    if len(password) < 8:
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+
+    with session_scope() as session:
+        existing = session.scalar(select(User).where(User.email == email))
+        if existing:
+            return jsonify({"error": "Email already registered"}), 409
+        user = User(email=email, password_hash=password_hash(password), display_name=display_name or email.split("@")[0])
+        session.add(user)
+        session.flush()
+        session.add(UserPreference(user_id=user.id))
+        token = issue_token(user)
+        return jsonify({"token": token, "user": user_payload(user)}), 201
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    data = request.get_json(silent=True) or {}
+    email = str(data.get("email", "")).strip().lower()
+    password = str(data.get("password", ""))
+    with session_scope() as session:
+        user = session.scalar(select(User).where(User.email == email))
+        if not user or not user.verify_password(password):
+            return jsonify({"error": "Invalid email or password"}), 401
+        if user.status != "active":
+            return jsonify({"error": "User is not active"}), 403
+        user.last_login_at = datetime.now(timezone.utc)
+        token = issue_token(user)
+        return jsonify({"token": token, "user": user_payload(user)})
+
+
+@app.route("/api/auth/me")
+def auth_me():
+    user = current_user_from_request()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    return jsonify({"user": user_payload(user)})
 
 
 def map_status(status):
@@ -62,6 +210,17 @@ def map_status(status):
 
 def cst_now():
     return datetime.now(timezone(timedelta(hours=8)))
+
+
+def match_status_from_kickoff(kickoff):
+    now = datetime.now(timezone.utc)
+    if kickoff.tzinfo is None:
+        kickoff = kickoff.replace(tzinfo=timezone.utc)
+    if now < kickoff:
+        return "upcoming"
+    if now <= kickoff + timedelta(hours=2):
+        return "live"
+    return "finished"
 
 
 def file_info(path):
@@ -88,17 +247,26 @@ def file_info(path):
 
 
 def load_worldcup_frontend_payload():
+    db_payload = load_worldcup_frontend_from_db()
+    if db_payload:
+        attach_odds(db_payload.get("matches", []), "worldcup")
+        return db_payload, 200
+
     schedule_payload = load_json("data/worldcup_2026_schedule.json", [])
     schedule_frontend = schedule_to_frontend(schedule_payload) if schedule_payload else {}
 
     payload = load_json("data/recommendations.json", {})
-    if payload:
+    if payload and not is_demo_recommendation_payload(payload):
         recommendations_frontend = recommendations_to_frontend(payload)
         if schedule_frontend:
-            return merge_worldcup_frontend(schedule_frontend, recommendations_frontend), 200
+            merged = merge_worldcup_frontend(schedule_frontend, recommendations_frontend)
+            attach_odds(merged.get("matches", []), "worldcup")
+            return merged, 200
+        attach_odds(recommendations_frontend.get("matches", []), "worldcup")
         return recommendations_frontend, 200
 
     if schedule_frontend:
+        attach_odds(schedule_frontend.get("matches", []), "worldcup")
         return schedule_frontend, 200
 
     static_payload = load_json("docs/data/worldcup_matches.json", {})
@@ -113,6 +281,78 @@ def load_worldcup_frontend_payload():
         "source": "none",
         "updated": cst_now().isoformat(),
     }, 404
+
+
+def load_worldcup_frontend_from_db():
+    try:
+        with session_scope() as session:
+            rows = session.scalars(
+                select(Match)
+                .where(Match.competition_key == "worldcup")
+                .order_by(Match.kickoff_time.asc(), Match.matchday.asc())
+            ).all()
+            if not rows:
+                return None
+            matches = []
+            for row in rows:
+                kickoff = row.kickoff_time
+                if kickoff.tzinfo is None:
+                    kickoff = kickoff.replace(tzinfo=timezone.utc)
+                cst = kickoff.astimezone(timezone(timedelta(hours=8)))
+                matches.append({
+                    "id": row.source_id,
+                    "league": "世界杯",
+                    "competition": "FIFA World Cup 2026",
+                    "stage": row.stage,
+                    "group": row.group_name,
+                    "date": cst.strftime("%Y-%m-%d"),
+                    "time": cst.strftime("%H:%M"),
+                    "matchday": row.matchday,
+                    "home": row.home_team_code or row.home_team_name,
+                    "homeName": row.home_team_name,
+                    "homeFull": row.home_team_name,
+                    "away": row.away_team_code or row.away_team_name,
+                    "awayName": row.away_team_name,
+                    "awayFull": row.away_team_name,
+                    "status": match_status_from_kickoff(kickoff),
+                    "minute": "",
+                    "scoreH": row.score_home,
+                    "scoreW": row.score_away,
+                    "venue": row.venue,
+                    "city": row.city,
+                    "oddsAvailable": False,
+                    "oddsMovement": {},
+                    "pick": {
+                        "type": "pending",
+                        "label": "竞彩赔率待开售",
+                        "conf": 0,
+                        "reason": "FIFA 官方赛程已同步，开售后再生成正式投注建议",
+                        "score": 0,
+                        "tags": ["官方赛程"],
+                    },
+                })
+            return {
+                "count": len(matches),
+                "matches": matches,
+                "source": "database",
+                "updated": cst_now().isoformat(),
+                "mode": "database",
+                "days": "",
+            }
+    except Exception as exc:
+        print(f"[DB] load worldcup failed: {exc}")
+        return None
+
+
+def is_demo_recommendation_payload(payload):
+    source_file = str(payload.get("source_file", ""))
+    if source_file.endswith("data/jingcai_matches.csv"):
+        return True
+    for item in payload.get("recommendations", []):
+        notes = " ".join(str(note) for note in item.get("notes", []))
+        if "示例CSV" in notes:
+            return True
+    return False
 
 
 def load_epl_frontend_payload():
@@ -172,6 +412,7 @@ def load_epl_frontend_payload():
             },
         })
 
+    attach_odds(matches, "epl")
     return {
         "count": len(matches),
         "matches": matches,
@@ -235,6 +476,7 @@ def load_openfootball_epl_payload(date_from, date_to, fallback_reason=""):
             },
         })
 
+    attach_odds(matches, "epl")
     return {
         "count": len(matches),
         "matches": matches,
@@ -275,6 +517,201 @@ def team_tla(name):
     return mapping.get(name, "")
 
 
+def canonical_team(value):
+    text = str(value or "").lower()
+    for token in [" football club", " fc", " afc", " cf", ".", "&"]:
+        text = text.replace(token, " ")
+    text = text.replace(" and ", " ")
+    return " ".join(text.split())
+
+
+def match_date_key(value):
+    if not value:
+        return ""
+    return str(value)[:10]
+
+
+def odds_team_key(home, away, date):
+    teams = sorted([canonical_team(home), canonical_team(away)])
+    return f"{match_date_key(date)}|{teams[0]}|{teams[1]}"
+
+
+def league_odds_config(league_key):
+    configs = {
+        "epl": {
+            "the_odds_api_sport": os.environ.get("THE_ODDS_API_EPL_SPORT", "soccer_epl"),
+            "api_football_league": os.environ.get("API_FOOTBALL_EPL_LEAGUE", "39"),
+            "api_football_season": os.environ.get("API_FOOTBALL_EPL_SEASON", "2025"),
+        },
+        "worldcup": {
+            "the_odds_api_sport": os.environ.get("THE_ODDS_API_WORLDCUP_SPORT", "soccer_fifa_world_cup"),
+            "api_football_league": os.environ.get("API_FOOTBALL_WORLDCUP_LEAGUE", "1"),
+            "api_football_season": os.environ.get("API_FOOTBALL_WORLDCUP_SEASON", "2026"),
+        },
+    }
+    return configs.get(league_key, {})
+
+
+def decimal_or_none(value):
+    try:
+        if value in {None, ""}:
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def fetch_the_odds_api_odds(league_key):
+    cfg = league_odds_config(league_key)
+    sport = cfg.get("the_odds_api_sport")
+    if not ODDS_API_KEY or not sport:
+        return {}
+    query = urlencode({
+        "apiKey": ODDS_API_KEY,
+        "regions": ODDS_API_REGIONS,
+        "markets": "h2h,totals",
+        "oddsFormat": "decimal",
+        "dateFormat": "iso",
+    })
+    url = f"{THE_ODDS_API_BASE}/sports/{sport}/odds/?{query}"
+    data = fetch_public_with_cache(f"the_odds_{league_key}_{ODDS_API_REGIONS}", url, ttl=300)
+    if not isinstance(data, list):
+        return {}
+
+    odds_by_match = {}
+    for item in data:
+        home = item.get("home_team", "")
+        away = item.get("away_team", "")
+        date = match_date_key(item.get("commence_time", ""))
+        key = odds_team_key(home, away, date)
+        bookmaker = (item.get("bookmakers") or [{}])[0]
+        markets = bookmaker.get("markets") or []
+        match_odds = {
+            "source": "the-odds-api",
+            "bookmaker": bookmaker.get("title", ""),
+            "updated": bookmaker.get("last_update", ""),
+            "h2h": {},
+            "totals": [],
+        }
+        for market in markets:
+            if market.get("key") == "h2h":
+                for outcome in market.get("outcomes", []):
+                    name = outcome.get("name", "")
+                    price = decimal_or_none(outcome.get("price"))
+                    if canonical_team(name) == canonical_team(home):
+                        match_odds["h2h"]["home"] = price
+                    elif canonical_team(name) == canonical_team(away):
+                        match_odds["h2h"]["away"] = price
+                    elif name.lower() == "draw":
+                        match_odds["h2h"]["draw"] = price
+            elif market.get("key") == "totals":
+                for outcome in market.get("outcomes", []):
+                    price = decimal_or_none(outcome.get("price"))
+                    point = decimal_or_none(outcome.get("point"))
+                    if price is not None:
+                        match_odds["totals"].append({
+                            "name": outcome.get("name", ""),
+                            "point": point,
+                            "price": price,
+                        })
+        odds_by_match[key] = match_odds
+    return odds_by_match
+
+
+def fetch_api_football_odds(league_key):
+    cfg = league_odds_config(league_key)
+    league = cfg.get("api_football_league")
+    season = cfg.get("api_football_season")
+    if not API_FOOTBALL_KEY or not league or not season:
+        return {}
+    url = f"{API_FOOTBALL_BASE}/odds?league={league}&season={season}"
+    data = fetch_api_football_with_cache(f"api_football_odds_{league}_{season}", url, ttl=600)
+    if not isinstance(data, dict):
+        return {}
+
+    odds_by_match = {}
+    for item in data.get("response", []):
+        fixture = item.get("fixture") or {}
+        teams = item.get("teams") or {}
+        home = (teams.get("home") or {}).get("name", "")
+        away = (teams.get("away") or {}).get("name", "")
+        date = match_date_key(fixture.get("date", ""))
+        if not home or not away or not date:
+            continue
+        bookmaker = (item.get("bookmakers") or [{}])[0]
+        match_odds = {
+            "source": "api-football",
+            "bookmaker": bookmaker.get("name", ""),
+            "updated": item.get("update", ""),
+            "h2h": {},
+            "totals": [],
+        }
+        for bet in bookmaker.get("bets", []):
+            bet_name = str(bet.get("name", "")).lower()
+            if bet_name in {"match winner", "1x2"}:
+                for value in bet.get("values", []):
+                    label = str(value.get("value", "")).lower()
+                    price = decimal_or_none(value.get("odd"))
+                    if label in {"home", "1"}:
+                        match_odds["h2h"]["home"] = price
+                    elif label in {"draw", "x"}:
+                        match_odds["h2h"]["draw"] = price
+                    elif label in {"away", "2"}:
+                        match_odds["h2h"]["away"] = price
+            elif "goals over/under" in bet_name or "over/under" in bet_name:
+                for value in bet.get("values", []):
+                    raw = str(value.get("value", ""))
+                    price = decimal_or_none(value.get("odd"))
+                    if price is not None:
+                        parts = raw.split()
+                        match_odds["totals"].append({
+                            "name": parts[0] if parts else raw,
+                            "point": decimal_or_none(parts[-1] if parts else None),
+                            "price": price,
+                        })
+        odds_by_match[odds_team_key(home, away, date)] = match_odds
+    return odds_by_match
+
+
+def fetch_league_odds(league_key):
+    odds = fetch_the_odds_api_odds(league_key)
+    if odds:
+        return odds
+    return fetch_api_football_odds(league_key)
+
+
+def attach_odds(matches, league_key):
+    odds_by_match = fetch_league_odds(league_key)
+    if not odds_by_match:
+        return matches
+    for match in matches:
+        key = odds_team_key(
+            match.get("homeFull") or match.get("homeName") or match.get("home"),
+            match.get("awayFull") or match.get("awayName") or match.get("away"),
+            match.get("date", ""),
+        )
+        odds = odds_by_match.get(key)
+        if not odds:
+            continue
+        match["oddsAvailable"] = True
+        match["odds"] = odds
+        h2h = odds.get("h2h") or {}
+        label_parts = []
+        if h2h.get("home"):
+            label_parts.append(f"H {h2h['home']:.2f}")
+        if h2h.get("draw"):
+            label_parts.append(f"D {h2h['draw']:.2f}")
+        if h2h.get("away"):
+            label_parts.append(f"A {h2h['away']:.2f}")
+        match["pick"] = {
+            "type": "odds",
+            "label": " / ".join(label_parts) if label_parts else "指数已接入",
+            "conf": 0.0,
+            "reason": "指数已接入，等待 AI 复评",
+        }
+    return matches
+
+
 def load_combined_matches_payload():
     worldcup_payload, worldcup_status = load_worldcup_frontend_payload()
     epl_payload, epl_status = load_epl_frontend_payload()
@@ -310,8 +747,16 @@ def load_combined_matches_payload():
 def health():
     worldcup_payload, worldcup_status = load_worldcup_frontend_payload()
     epl_payload, epl_status = load_epl_frontend_payload()
+    database_status = {**DB_STATUS}
+    if database_status.get("ok"):
+        try:
+            database_status["counts"] = db_counts()
+        except Exception as exc:
+            database_status["ok"] = False
+            database_status["error"] = str(exc)
     return jsonify({
-        "ok": worldcup_status == 200 or epl_status == 200,
+        "ok": (worldcup_status == 200 or epl_status == 200) and database_status.get("ok", False),
+        "database": database_status,
         "football_data_api_key": bool(API_KEY),
         "epl_matches": epl_payload.get("count", 0),
         "epl_status": epl_status,
