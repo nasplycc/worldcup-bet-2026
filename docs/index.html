@@ -296,25 +296,23 @@ function multiOddsBox(m){
 }
 function snapshotsHtml(items){
   if(!items||!items.length)return `<div class="detail-note">${t('noHistory')}</div>`;
-  // Group snapshots by time for readability
-  const grouped=new Map();
+  // Deduplicate: keep latest per market+selection
+  const seen=new Map();
   for(const s of items){
-    const time=localizeTime(s.capturedAt);
-    if(!grouped.has(time))grouped.set(time,[]);
-    grouped.get(time).push(s);
+    const key=`${s.market}|${s.selection}`;
+    if(!seen.has(key)||s.capturedAt>seen.get(key).capturedAt){
+      seen.set(key,s);
+    }
   }
-  let html='';
-  for(const [time,snapshots] of grouped){
-    const picks=snapshots.map(s=>{
-      const market=esc(localizeMarket(s.market));
-      const selection=esc(localizeSelection(s.selection));
-      const price=Number(s.price).toFixed(2);
-      const book=esc(localizeBookmaker(s.bookmaker||s.source||''));
-      return `<span>${market}·${selection} <span class="snapshot-price">${price}</span> <span style="color:var(--muted);font-size:11px">${book}</span></span>`;
-    }).join(' · ');
-    html+=`<div class="snapshot-item"><span style="color:var(--muted);font-size:11px">${esc(time)}</span><span>${picks}</span></div>`;
-  }
-  return `<div class="snapshot-list">${html}</div>`;
+  const unique=[...seen.values()].sort((a,b)=>(b.capturedAt||'').localeCompare(a.capturedAt||''));
+  const picks=unique.map(s=>{
+    const market=esc(localizeMarket(s.market));
+    const selection=esc(localizeSelection(s.selection));
+    const price=Number(s.price).toFixed(2);
+    const time=esc(localizeTime(s.capturedAt));
+    return `<span>${market}·${selection} <span class="snapshot-price">${price}</span> <span style="color:var(--muted);font-size:11px">${time}</span></span>`;
+  }).join(' · ');
+  return `<div class="snapshot-list">${picks}</div>`;
 }
 function analysisHtml(items,m){
   if(items&&items.length){

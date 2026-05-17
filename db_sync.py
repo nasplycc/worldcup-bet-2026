@@ -81,11 +81,26 @@ def persist_odds_snapshots(matches: list[dict[str, Any]], competition_key: str) 
             if not odds:
                 continue
             match_id = find_match_id(session, match, competition_key)
+            if match_id is None:
+                continue
             source = odds.get("source", "")
             bookmaker = odds.get("bookmaker", "")
+            captured_at = datetime.now(timezone.utc)
+            # Check existing snapshots for this match
+            existing = session.scalars(
+                select(OddsSnapshot).where(
+                    OddsSnapshot.match_id == match_id,
+                    OddsSnapshot.competition_key == competition_key,
+                )
+            ).all()
+            existing_set = {(s.market, s.selection, s.price) for s in existing}
+
             h2h = odds.get("h2h") or {}
             for selection, price in h2h.items():
                 if price is None:
+                    continue
+                key = ("h2h", selection, float(price))
+                if key in existing_set:
                     continue
                 session.add(OddsSnapshot(
                     match_id=match_id,
@@ -95,12 +110,16 @@ def persist_odds_snapshots(matches: list[dict[str, Any]], competition_key: str) 
                     market="h2h",
                     selection=selection,
                     price=float(price),
+                    captured_at=captured_at,
                     raw=odds,
                 ))
                 inserted += 1
             for item in odds.get("totals") or []:
                 price = item.get("price")
                 if price is None:
+                    continue
+                key = ("totals", str(item.get("name") or ""), float(price))
+                if key in existing_set:
                     continue
                 session.add(OddsSnapshot(
                     match_id=match_id,
@@ -111,6 +130,7 @@ def persist_odds_snapshots(matches: list[dict[str, Any]], competition_key: str) 
                     selection=str(item.get("name") or ""),
                     price=float(price),
                     point=item.get("point"),
+                    captured_at=captured_at,
                     raw=odds,
                 ))
                 inserted += 1
