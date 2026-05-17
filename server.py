@@ -19,7 +19,7 @@ from sqlalchemy import select
 from frontend_data import merge_worldcup_frontend, recommendations_to_frontend, schedule_to_frontend
 from state import load_json
 from db import AnalysisJob, AnalysisResult, Match, MatchData, OddsSnapshot, SyncRun, db_counts, init_db, seed_all, session_scope
-from db_sync import persist_analysis_files, persist_odds_snapshots, upsert_matches_from_frontend
+from db_sync import persist_analysis_files, persist_fixture_metadata, persist_odds_snapshots, upsert_matches_from_frontend
 from ai_pipeline import analysis_job_stats, enqueue_analysis_jobs, run_analysis_jobs
 from auth_routes import auth_bp, current_plan, is_admin_request
 from data_sources.api_football import fetch_fixtures as fetch_api_football_fixtures, fetch_odds as fetch_api_football_odds, status_from_short as map_api_football_status, sync_match_data as sync_api_football_match_data
@@ -55,6 +55,8 @@ SYNC_PREMATCH_INTERVAL_MINUTES = max(5, int(os.environ.get("SYNC_PREMATCH_INTERV
 SYNC_LIVE_INTERVAL_MINUTES = max(1, int(os.environ.get("SYNC_LIVE_INTERVAL_MINUTES", "5")))
 SYNC_POSTMATCH_INTERVAL_MINUTES = max(5, int(os.environ.get("SYNC_POSTMATCH_INTERVAL_MINUTES", "60")))
 AI_PREFILL_CONTEXT_BEFORE_QUEUE = os.environ.get("AI_PREFILL_CONTEXT_BEFORE_QUEUE", "true").lower() in {"1", "true", "yes", "on"}
+ODDS_HISTORY_QUERY_LIMIT = max(24, int(os.environ.get("ODDS_HISTORY_QUERY_LIMIT", "300")))
+ODDS_HISTORY_DISPLAY_LIMIT = max(6, int(os.environ.get("ODDS_HISTORY_DISPLAY_LIMIT", "24")))
 SYNC_LOCK = threading.Lock()
 SCHEDULER_STARTED = False
 
@@ -366,6 +368,7 @@ def load_epl_frontend_payload():
     enrich_fixture_details(matches, "epl")
     attach_odds(matches, "epl")
     upsert_matches_from_frontend(matches, "epl", "2025", "football-data.org")
+    persist_fixture_metadata(matches, "epl")
     return {
         "count": len(matches),
         "matches": matches,
@@ -432,6 +435,7 @@ def load_openfootball_epl_payload(date_from, date_to, fallback_reason=""):
     enrich_fixture_details(matches, "epl")
     attach_odds(matches, "epl")
     upsert_matches_from_frontend(matches, "epl", "2025", "openfootball")
+    persist_fixture_metadata(matches, "epl")
     return {
         "count": len(matches),
         "matches": matches,
@@ -473,11 +477,33 @@ def team_tla(name):
 
 
 def canonical_team(value):
-    text = str(value or "").lower()
-    for token in [" football club", " fc", " afc", " cf", ".", "&"]:
+    aliases = {
+        "ars": "arsenal", "arsenal fc": "arsenal", "阿森纳": "arsenal",
+        "avl": "aston villa", "aston villa fc": "aston villa", "阿斯顿维拉": "aston villa",
+        "bou": "bournemouth", "afc bournemouth": "bournemouth", "伯恩茅斯": "bournemouth",
+        "bre": "brentford", "brentford fc": "brentford", "布伦特福德": "brentford",
+        "bha": "brighton", "brighton & hove albion": "brighton", "brighton and hove albion": "brighton", "布莱顿": "brighton",
+        "che": "chelsea", "chelsea fc": "chelsea", "切尔西": "chelsea",
+        "cry": "crystal palace", "crystal palace fc": "crystal palace", "水晶宫": "crystal palace",
+        "eve": "everton", "everton fc": "everton", "埃弗顿": "everton",
+        "ful": "fulham", "fulham fc": "fulham", "富勒姆": "fulham",
+        "lee": "leeds", "leeds united": "leeds", "利兹联": "leeds",
+        "liv": "liverpool", "liverpool fc": "liverpool", "利物浦": "liverpool",
+        "mci": "manchester city", "manchester city fc": "manchester city", "曼城": "manchester city",
+        "mun": "manchester united", "manchester united fc": "manchester united", "曼联": "manchester united",
+        "new": "newcastle", "newcastle united": "newcastle", "纽卡斯尔": "newcastle",
+        "nfo": "nottingham forest", "nottingham forest fc": "nottingham forest", "诺丁汉森林": "nottingham forest",
+        "sun": "sunderland", "sunderland afc": "sunderland", "桑德兰": "sunderland",
+        "tot": "tottenham", "tottenham hotspur": "tottenham", "tottenham hotspur fc": "tottenham", "热刺": "tottenham",
+        "whu": "west ham", "west ham united": "west ham", "西汉姆联": "west ham",
+        "wol": "wolves", "wolverhampton wanderers": "wolves", "狼队": "wolves",
+    }
+    text = str(value or "").strip().lower()
+    for token in [" football club", " fc", " afc", " cf", ".", ","]:
         text = text.replace(token, " ")
-    text = text.replace(" and ", " ")
-    return " ".join(text.split())
+    text = text.replace("&", " and ")
+    text = " ".join(text.split())
+    return aliases.get(text, text)
 
 
 def match_date_key(value):
@@ -588,6 +614,7 @@ def enrich_fixture_details(matches, league_key):
     sportsdb_events = fetch_thesportsdb_events(league_key) if not fixtures else {}
     if not fixtures and not sportsdb_events:
         return matches
+    fixture_matches = 0
     for match in matches:
         key = odds_team_key(
             match.get("homeFull") or match.get("homeName") or match.get("home"),
@@ -637,6 +664,7 @@ def enrich_fixture_details(matches, league_key):
                 "apiFootballFixture": item,
             })
             match["raw"] = raw
+            fixture_matches += 1
             continue
 
         event = sportsdb_events.get(key)
@@ -663,6 +691,12 @@ def enrich_fixture_details(matches, league_key):
             "theSportsDBEvent": event,
         })
         match["raw"] = raw
+    if fixture_matches:
+        try:
+            updated = persist_fixture_metadata(matches, league_key)
+            print(f"[API-Football] persisted fixture metadata: matched={fixture_matches}, updated={updated}, league={league_key}")
+        except Exception as exc:
+            print(f"[API-Football] persist fixture metadata failed: {exc}")
     return matches
 
 
@@ -1186,6 +1220,28 @@ def odds_snapshot_payload(row):
     }
 
 
+def compact_odds_history(snapshot_rows, limit=ODDS_HISTORY_DISPLAY_LIMIT):
+    """Return a compact odds timeline, dropping repeated unchanged snapshots."""
+    compacted = []
+    seen = set()
+    for row in snapshot_rows:
+        key = (
+            row.market,
+            row.selection,
+            row.point,
+            row.source,
+            row.bookmaker,
+            row.price,
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        compacted.append(odds_snapshot_payload(row))
+        if len(compacted) >= limit:
+            break
+    return compacted
+
+
 def current_odds_sources(snapshot_rows):
     sources = {}
     for row in snapshot_rows:
@@ -1373,7 +1429,7 @@ def db_match_detail_payload(league_key, source_id, plan):
             select(OddsSnapshot)
             .where(OddsSnapshot.match_id == row.id)
             .order_by(OddsSnapshot.captured_at.desc())
-            .limit(120)
+            .limit(ODDS_HISTORY_QUERY_LIMIT)
         ).all()
         rich_rows = session.scalars(
             select(MatchData)
@@ -1397,7 +1453,7 @@ def db_match_detail_payload(league_key, source_id, plan):
             "subscription": {"plan": plan},
             "oddsSources": current_odds_sources(snapshot_rows),
             "recentOddsBatch": recent_snapshot_batch(snapshot_rows),
-            "oddsSnapshots": [odds_snapshot_payload(item) for item in snapshot_rows],
+            "oddsSnapshots": compact_odds_history(snapshot_rows),
             "matchData": match_data_payload(rich_rows),
             "analysisResults": analyses,
             "updated": cst_now().isoformat(),
@@ -1446,12 +1502,9 @@ def match_detail(league_key, source_id):
                     select(OddsSnapshot)
                     .where(OddsSnapshot.match_id == row.id)
                     .order_by(OddsSnapshot.captured_at.desc())
-                    .limit(120)
+                    .limit(ODDS_HISTORY_QUERY_LIMIT)
                 ).all()
-                snapshots = [
-                    odds_snapshot_payload(item)
-                    for item in snapshot_rows
-                ]
+                snapshots = compact_odds_history(snapshot_rows)
                 current_sources = current_odds_sources(snapshot_rows)
                 recent_batch = recent_snapshot_batch(snapshot_rows)
                 analyses = [

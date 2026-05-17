@@ -16,6 +16,28 @@ SYNC_LIMIT = max(0, int(os.environ.get("MATCH_DATA_SYNC_LIMIT", "12")))
 LINEUP_HOURS = max(1, int(os.environ.get("SYNC_LINEUP_HOURS", "4")))
 CACHE = {}
 
+TEAM_ALIASES = {
+    "ars": "arsenal", "arsenal fc": "arsenal", "阿森纳": "arsenal",
+    "avl": "aston villa", "aston villa fc": "aston villa", "阿斯顿维拉": "aston villa",
+    "bou": "bournemouth", "afc bournemouth": "bournemouth", "伯恩茅斯": "bournemouth",
+    "bre": "brentford", "brentford fc": "brentford", "布伦特福德": "brentford",
+    "bha": "brighton", "brighton & hove albion": "brighton", "brighton and hove albion": "brighton", "布莱顿": "brighton",
+    "che": "chelsea", "chelsea fc": "chelsea", "切尔西": "chelsea",
+    "cry": "crystal palace", "crystal palace fc": "crystal palace", "水晶宫": "crystal palace",
+    "eve": "everton", "everton fc": "everton", "埃弗顿": "everton",
+    "ful": "fulham", "fulham fc": "fulham", "富勒姆": "fulham",
+    "lee": "leeds", "leeds united": "leeds", "利兹联": "leeds",
+    "liv": "liverpool", "liverpool fc": "liverpool", "利物浦": "liverpool",
+    "mci": "manchester city", "manchester city fc": "manchester city", "曼城": "manchester city",
+    "mun": "manchester united", "manchester united fc": "manchester united", "曼联": "manchester united",
+    "new": "newcastle", "newcastle united": "newcastle", "纽卡斯尔": "newcastle",
+    "nfo": "nottingham forest", "nottingham forest fc": "nottingham forest", "诺丁汉森林": "nottingham forest",
+    "sun": "sunderland", "sunderland afc": "sunderland", "桑德兰": "sunderland",
+    "tot": "tottenham", "tottenham hotspur": "tottenham", "tottenham hotspur fc": "tottenham", "热刺": "tottenham",
+    "whu": "west ham", "west ham united": "west ham", "西汉姆联": "west ham",
+    "wol": "wolves", "wolverhampton wanderers": "wolves", "狼队": "wolves",
+}
+
 
 def league_config(league_key):
     configs = {
@@ -32,11 +54,12 @@ def league_config(league_key):
 
 
 def canonical_team(value):
-    text = str(value or "").lower()
-    for token in [" football club", " fc", " afc", " cf", ".", "&"]:
+    text = str(value or "").strip().lower()
+    for token in [" football club", " fc", " afc", " cf", ".", ","]:
         text = text.replace(token, " ")
-    text = text.replace(" and ", " ")
-    return " ".join(text.split())
+    text = text.replace("&", " and ")
+    text = " ".join(text.split())
+    return TEAM_ALIASES.get(text, text)
 
 
 def match_date_key(value):
@@ -169,11 +192,21 @@ def status_from_short(short_status):
     return mapping.get(str(short_status or "").upper(), "")
 
 
-def fixture_key_for_match(match):
+def fixture_keys_for_match(match):
     kickoff = match.kickoff_time
     if kickoff.tzinfo is None:
         kickoff = kickoff.replace(tzinfo=timezone.utc)
-    return odds_team_key(match.home_team_name or match.home_team_code, match.away_team_name or match.away_team_code, kickoff.date().isoformat())
+    date = kickoff.date().isoformat()
+    home_values = [match.home_team_name, match.home_team_code]
+    away_values = [match.away_team_name, match.away_team_code]
+    keys = []
+    for home in home_values:
+        for away in away_values:
+            if home and away:
+                key = odds_team_key(home, away, date)
+                if key not in keys:
+                    keys.append(key)
+    return keys
 
 
 def resolve_fixture(match):
@@ -181,7 +214,12 @@ def resolve_fixture(match):
     fixture_id = raw.get("fixtureId") or raw.get("fixture_id") or ((raw.get("fixture") or {}).get("id") if isinstance(raw.get("fixture"), dict) else None)
     if fixture_id:
         return fixture_id, None
-    item = fetch_fixtures(match.competition_key).get(fixture_key_for_match(match))
+    fixtures = fetch_fixtures(match.competition_key)
+    item = None
+    for key in fixture_keys_for_match(match):
+        item = fixtures.get(key)
+        if item:
+            break
     if not item:
         return None, None
     return (item.get("fixture") or {}).get("id"), item
@@ -236,14 +274,15 @@ def sync_match_data(limit=None):
             if not fixture_id:
                 skipped += 1
                 continue
-            if fixture_item:
-                raw = dict(match.raw or {})
+            raw = dict(match.raw or {})
+            if fixture_item or raw.get("fixtureId") != fixture_id:
                 raw.update({
                     "fixtureId": fixture_id,
-                    "fixtureSource": "api-football",
-                    "fixtureSeason": league_config(match.competition_key).get("api_football_season", ""),
-                    "apiFootballFixture": fixture_item,
+                    "fixtureSource": raw.get("fixtureSource") or "api-football",
+                    "fixtureSeason": raw.get("fixtureSeason") or league_config(match.competition_key).get("api_football_season", ""),
                 })
+                if fixture_item:
+                    raw["apiFootballFixture"] = fixture_item
                 match.raw = raw
             existing_by_type = {item.data_type: item for item in session.scalars(select(MatchData).where(MatchData.match_id == match.id, MatchData.source == "api-football")).all()}
             for data_type in ("events", "statistics", "lineups"):

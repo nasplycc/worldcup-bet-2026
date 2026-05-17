@@ -9,6 +9,78 @@ from db import AnalysisResult, Match, OddsSnapshot, session_scope
 from state import load_json
 
 
+TEAM_ALIASES = {
+    "ars": "arsenal",
+    "arsenal fc": "arsenal",
+    "阿森纳": "arsenal",
+    "avl": "aston villa",
+    "aston villa fc": "aston villa",
+    "阿斯顿维拉": "aston villa",
+    "bou": "bournemouth",
+    "afc bournemouth": "bournemouth",
+    "伯恩茅斯": "bournemouth",
+    "bre": "brentford",
+    "brentford fc": "brentford",
+    "布伦特福德": "brentford",
+    "bha": "brighton",
+    "brighton & hove albion": "brighton",
+    "brighton and hove albion": "brighton",
+    "布莱顿": "brighton",
+    "che": "chelsea",
+    "chelsea fc": "chelsea",
+    "切尔西": "chelsea",
+    "cry": "crystal palace",
+    "crystal palace fc": "crystal palace",
+    "水晶宫": "crystal palace",
+    "eve": "everton",
+    "everton fc": "everton",
+    "埃弗顿": "everton",
+    "ful": "fulham",
+    "fulham fc": "fulham",
+    "富勒姆": "fulham",
+    "lee": "leeds",
+    "leeds united": "leeds",
+    "利兹联": "leeds",
+    "liv": "liverpool",
+    "liverpool fc": "liverpool",
+    "利物浦": "liverpool",
+    "mci": "manchester city",
+    "manchester city fc": "manchester city",
+    "曼城": "manchester city",
+    "mun": "manchester united",
+    "manchester united fc": "manchester united",
+    "曼联": "manchester united",
+    "new": "newcastle",
+    "newcastle united": "newcastle",
+    "纽卡斯尔": "newcastle",
+    "nfo": "nottingham forest",
+    "nottingham forest fc": "nottingham forest",
+    "诺丁汉森林": "nottingham forest",
+    "sun": "sunderland",
+    "sunderland afc": "sunderland",
+    "桑德兰": "sunderland",
+    "tot": "tottenham",
+    "tottenham hotspur": "tottenham",
+    "tottenham hotspur fc": "tottenham",
+    "热刺": "tottenham",
+    "whu": "west ham",
+    "west ham united": "west ham",
+    "西汉姆联": "west ham",
+    "wol": "wolves",
+    "wolverhampton wanderers": "wolves",
+    "狼队": "wolves",
+}
+
+
+def canonical_team(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    for token in [" football club", " fc", " afc", " cf", ".", ","]:
+        text = text.replace(token, " ")
+    text = text.replace("&", " and ")
+    text = " ".join(text.split())
+    return TEAM_ALIASES.get(text, text)
+
+
 def parse_match_datetime(date: str, time: str = "") -> datetime:
     value = f"{date}T{time or '00:00'}:00+08:00" if len(time or "") <= 5 else f"{date}T{time}+08:00"
     return datetime.fromisoformat(value).astimezone(timezone.utc)
@@ -68,6 +140,62 @@ def upsert_matches_from_frontend(matches: list[dict[str, Any]], competition_key:
                 session.add(Match(**payload))
             count += 1
     return count
+
+
+def persist_fixture_metadata(matches: list[dict[str, Any]], competition_key: str) -> int:
+    """Persist resolved third-party fixture IDs into Match.raw for later rich-data sync."""
+    updated = 0
+    with session_scope() as session:
+        rows = session.scalars(select(Match).where(Match.competition_key == competition_key)).all()
+        by_source_id = {str(row.source_id): row for row in rows}
+        by_date_teams = {}
+        for row in rows:
+            kickoff = row.kickoff_time
+            if kickoff.tzinfo is None:
+                kickoff = kickoff.replace(tzinfo=timezone.utc)
+            row_date = kickoff.astimezone(timezone.utc).date().isoformat()
+            for home_value in (row.home_team_name, row.home_team_code):
+                for away_value in (row.away_team_name, row.away_team_code):
+                    home = canonical_team(home_value)
+                    away = canonical_team(away_value)
+                    if home and away:
+                        by_date_teams[(row_date, home, away)] = row
+                        by_date_teams[(row_date, away, home)] = row
+
+        for item in matches:
+            raw = dict(item.get("raw") or {})
+            fixture_id = item.get("fixtureId") or raw.get("fixtureId") or raw.get("fixture_id")
+            if not fixture_id:
+                continue
+
+            row = by_source_id.get(str(item.get("id") or ""))
+            if not row:
+                date = str(item.get("date") or "")[:10]
+                for home_value in (item.get("homeFull"), item.get("homeName"), item.get("home")):
+                    for away_value in (item.get("awayFull"), item.get("awayName"), item.get("away")):
+                        home = canonical_team(home_value)
+                        away = canonical_team(away_value)
+                        row = by_date_teams.get((date, home, away))
+                        if row:
+                            break
+                    if row:
+                        break
+            if not row:
+                continue
+
+            merged = dict(row.raw or {})
+            before = dict(merged)
+            merged.update(raw)
+            merged["fixtureId"] = fixture_id
+            merged["fixtureSource"] = raw.get("fixtureSource") or item.get("fixtureSource") or "api-football"
+            if item.get("fixtureSeason") or raw.get("fixtureSeason"):
+                merged["fixtureSeason"] = item.get("fixtureSeason") or raw.get("fixtureSeason")
+            if raw.get("apiFootballFixture"):
+                merged["apiFootballFixture"] = raw.get("apiFootballFixture")
+            if merged != before:
+                row.raw = merged
+                updated += 1
+    return updated
 
 
 def find_match_id(session, match: dict[str, Any], competition_key: str) -> int | None:
