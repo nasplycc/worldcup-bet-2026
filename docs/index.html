@@ -270,8 +270,8 @@ function leagueKeyOf(m){return isWC(m)?'worldcup':'epl'}
 function findLocalMatch(leagueKey,id){return allMatches.find(m=>String(m.id)===String(id)&&leagueKeyOf(m)===leagueKey)}
 function detailRows(rows){return `<div class="kv">${rows.map(([k,v])=>`<span>${esc(k)}</span><span>${esc(v||'-')}</span>`).join('')}</div>`}
 // Snapshots localization
-const marketMap={h2h:'胜平负',totals:'大小球','1x2':'胜平负','1X2':'胜平伏','Match Winner':'胜平负',asian_handicap:'亚盘',double_chance:'双选',btts:'双方进球'};
-const marketMapEn={h2h:'H2H',totals:'O/U','1x2':'1X2','1X2':'1X2','Match Winner':'Match Winner',asian_handicap:'Asian Handicap',double_chance:'Double Chance',btts:'Both Teams to Score'};
+const marketMap={h2h:'胜平负',totals:'大小球','1x2':'胜平负','1X2':'胜平负','Match Winner':'胜平负',asian_handicap:'亚盘',double_chance:'双选',btts:'双方进球',spread:'让球盘'};
+const marketMapEn={h2h:'H2H',totals:'O/U','1x2':'1X2','1X2':'1X2','Match Winner':'Match Winner',asian_handicap:'Asian Handicap',double_chance:'Double Chance',btts:'Both Teams to Score',spread:'Handicap'};
 const selectionMap={home:'主胜',draw:'平局',away:'客胜',over:'大球',under:'小球',yes:'是',no:'否','1':'主胜','X':'平局','2':'客胜'};
 const selectionMapEn={home:'Home',draw:'Draw',away:'Away',over:'Over',under:'Under',yes:'Yes',no:'No','1':'Home','X':'Draw','2':'Away'};
 const sourceMap={'the-odds-api':'The Odds API','api-football':'API-Football',sporttery:'中国竞彩网',Sporttery:'中国竞彩网','football-data.org':'football-data.org','football-data.co.uk':'football-data.co.uk',database:'数据库',openfootball:'OpenFootball',pinnacle:'平博',Pinnacle:'平博'};
@@ -342,6 +342,14 @@ function analysisHtml(items,m){
   return `<div class="detail-note">${pickLabel(m)}<br>${pickDesc(m)}</div>`;
 }
 function apiResponse(data,type){return ((data.matchData||{})[type]||{}).payload||{}}
+function detailSection(title,html){return html?`<div class="detail-box wide"><h3>${title}</h3>${html}</div>`:''}
+function hasDetailPayload(data,type){
+  const payload=apiResponse(data,type);
+  if(type==='official_market')return !!payload.fixture;
+  if(type==='historical_stats')return !!payload.stats;
+  const rows=payload.response||payload.timeline||payload.eventstats||payload.lineup||[];
+  return Array.isArray(rows)&&rows.length>0;
+}
 function officialMarketHtml(data){
   const payload=apiResponse(data,'official_market');
   if(!payload.fixture)return `<div class="detail-note">${currentLang==='en'?'No official public reference data synced yet':'官方公开参考数据暂未同步'}</div>`;
@@ -444,6 +452,16 @@ function renderDetail(m,data){
     <div class="detail-box wide"><h3>赛况事件</h3>${eventsHtml(data)}</div>
     <div class="detail-box wide"><h3>技术统计</h3>${statisticsHtml(data)}</div>
     <div class="detail-box wide"><h3>阵容</h3>${lineupsHtml(data)}</div>`;
+  const optionalVisible=[
+    hasDetailPayload(data,'official_market'),
+    hasDetailPayload(data,'historical_stats'),
+    hasDetailPayload(data,'events'),
+    hasDetailPayload(data,'statistics'),
+    hasDetailPayload(data,'lineups'),
+  ];
+  [...$('detailBody').querySelectorAll('.detail-box.wide')].forEach((box,index)=>{
+    if(!optionalVisible[index])box.remove();
+  });
 }
 function closeDetail(){$('detailModal').classList.remove('show');$('detailModal').setAttribute('aria-hidden','true')}
 function card(m){
