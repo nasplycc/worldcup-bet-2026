@@ -75,6 +75,19 @@ class UserPreference(Base):
     user: Mapped[User] = relationship(back_populates="preferences")
 
 
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True, nullable=False)
+    plan: Mapped[str] = mapped_column(String(32), default="free", index=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="active", index=True, nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
 class Competition(Base):
     __tablename__ = "competitions"
 
@@ -155,6 +168,30 @@ class AnalysisResult(Base):
     payload: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
     markdown: Mapped[str] = mapped_column(Text, default="", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True, nullable=False)
+
+
+class AnalysisJob(Base):
+    __tablename__ = "analysis_jobs"
+    __table_args__ = (UniqueConstraint("prompt_hash", name="uq_analysis_job_prompt_hash"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    match_id: Mapped[int] = mapped_column(ForeignKey("matches.id", ondelete="CASCADE"), index=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="queued", index=True, nullable=False)
+    priority: Mapped[int] = mapped_column(Integer, default=100, index=True, nullable=False)
+    model: Mapped[str] = mapped_column(String(80), default="", nullable=False)
+    prompt_hash: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(40), default="v1", nullable=False)
+    input_payload: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    output_payload: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    error: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    prompt_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    completion_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    total_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class SyncRun(Base):
@@ -289,5 +326,7 @@ def db_counts() -> dict[str, int]:
             "matches": len(session.scalars(select(Match.id)).all()),
             "odds_snapshots": len(session.scalars(select(OddsSnapshot.id)).all()),
             "analysis_results": len(session.scalars(select(AnalysisResult.id)).all()),
+            "analysis_jobs": len(session.scalars(select(AnalysisJob.id)).all()),
+            "subscriptions": len(session.scalars(select(Subscription.id)).all()),
             "sync_runs": len(session.scalars(select(SyncRun.id)).all()),
         }

@@ -19,8 +19,9 @@ from sqlalchemy import select
 
 from frontend_data import merge_worldcup_frontend, recommendations_to_frontend, schedule_to_frontend
 from state import load_json
-from db import Match, SyncRun, User, UserPreference, db_counts, init_db, password_hash, seed_all, session_scope
+from db import AnalysisJob, AnalysisResult, Match, OddsSnapshot, Subscription, SyncRun, User, UserPreference, db_counts, init_db, password_hash, seed_all, session_scope
 from db_sync import persist_analysis_files, persist_odds_snapshots, upsert_matches_from_frontend
+from ai_pipeline import analysis_job_stats, enqueue_analysis_jobs, run_analysis_jobs
 
 app = Flask(__name__, static_folder="docs", static_url_path="")
 ROOT = Path(__file__).resolve().parent
@@ -32,6 +33,7 @@ ODDS_API_REGIONS = os.environ.get("THE_ODDS_API_REGIONS", "eu")
 API_FOOTBALL_KEY = os.environ.get("API_FOOTBALL_KEY", "")
 JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-change-me")
 JWT_TTL_HOURS = int(os.environ.get("JWT_TTL_HOURS", "168"))
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
 BASE = "https://api.football-data.org/v4"
 OPENFOOTBALL_EPL_2025_26 = "https://openfootball.github.io/england/2025-26/1-premierleague.json"
 THE_ODDS_API_BASE = "https://api.the-odds-api.com/v4"
@@ -125,13 +127,55 @@ def index():
 
 
 def user_payload(user):
+    subscription = get_subscription_payload(user.id) if user and getattr(user, "id", None) else {"plan": "free", "status": "active"}
     return {
         "id": user.id,
         "email": user.email,
         "displayName": user.display_name,
         "role": user.role,
         "status": user.status,
+        "subscription": subscription,
     }
+
+
+def get_subscription_payload(user_id):
+    with session_scope() as session:
+        sub = session.scalar(select(Subscription).where(Subscription.user_id == user_id))
+        if not sub:
+            sub = Subscription(user_id=user_id, plan="free", status="active")
+            session.add(sub)
+            session.flush()
+        return {
+            "plan": sub.plan,
+            "status": sub.status,
+            "startedAt": sub.started_at.isoformat() if sub.started_at else "",
+            "expiresAt": sub.expires_at.isoformat() if sub.expires_at else "",
+        }
+
+
+def subscription_payload(sub):
+    return {
+        "plan": sub.plan,
+        "status": sub.status,
+        "startedAt": sub.started_at.isoformat() if sub.started_at else "",
+        "expiresAt": sub.expires_at.isoformat() if sub.expires_at else "",
+    }
+
+
+def current_plan():
+    user = current_user_from_request()
+    if not user:
+        return "free"
+    sub = get_subscription_payload(user.id)
+    return sub.get("plan", "free") if sub.get("status") == "active" else "free"
+
+
+def is_admin_request():
+    user = current_user_from_request()
+    if user and user.role == "admin":
+        return True
+    token = request.headers.get("X-Admin-Token", "")
+    return bool(ADMIN_TOKEN and token == ADMIN_TOKEN)
 
 
 def issue_token(user):
@@ -179,8 +223,17 @@ def auth_register():
         session.add(user)
         session.flush()
         session.add(UserPreference(user_id=user.id))
+        session.add(Subscription(user_id=user.id, plan="free", status="active"))
         token = issue_token(user)
-        return jsonify({"token": token, "user": user_payload(user)}), 201
+        payload = {
+            "id": user.id,
+            "email": user.email,
+            "displayName": user.display_name,
+            "role": user.role,
+            "status": user.status,
+            "subscription": {"plan": "free", "status": "active", "startedAt": datetime.now(timezone.utc).isoformat(), "expiresAt": ""},
+        }
+        return jsonify({"token": token, "user": payload}), 201
 
 
 @app.route("/api/auth/login", methods=["POST"])
@@ -195,8 +248,21 @@ def auth_login():
         if user.status != "active":
             return jsonify({"error": "User is not active"}), 403
         user.last_login_at = datetime.now(timezone.utc)
+        sub = session.scalar(select(Subscription).where(Subscription.user_id == user.id))
+        if not sub:
+            sub = Subscription(user_id=user.id, plan="free", status="active")
+            session.add(sub)
+            session.flush()
         token = issue_token(user)
-        return jsonify({"token": token, "user": user_payload(user)})
+        payload = {
+            "id": user.id,
+            "email": user.email,
+            "displayName": user.display_name,
+            "role": user.role,
+            "status": user.status,
+            "subscription": subscription_payload(sub),
+        }
+        return jsonify({"token": token, "user": payload})
 
 
 @app.route("/api/auth/me")
@@ -205,6 +271,45 @@ def auth_me():
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
     return jsonify({"user": user_payload(user)})
+
+
+@app.route("/api/account/subscription")
+def account_subscription():
+    user = current_user_from_request()
+    if not user:
+        return jsonify({"subscription": {"plan": "free", "status": "active"}})
+    return jsonify({"subscription": get_subscription_payload(user.id)})
+
+
+@app.route("/api/admin/users/<int:user_id>/subscription", methods=["POST"])
+def admin_set_subscription(user_id):
+    if not is_admin_request():
+        return jsonify({"error": "Forbidden"}), 403
+    data = request.get_json(silent=True) or {}
+    plan = str(data.get("plan") or "free").lower()
+    status = str(data.get("status") or "active").lower()
+    if plan not in {"free", "pro"}:
+        return jsonify({"error": "plan must be free or pro"}), 400
+    if status not in {"active", "paused", "cancelled"}:
+        return jsonify({"error": "invalid status"}), 400
+    with session_scope() as session:
+        user = session.get(User, user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        sub = session.scalar(select(Subscription).where(Subscription.user_id == user_id))
+        if not sub:
+            sub = Subscription(user_id=user_id)
+            session.add(sub)
+        sub.plan = plan
+        sub.status = status
+        sub.updated_at = datetime.now(timezone.utc)
+        session.flush()
+        return jsonify({"userId": user_id, "subscription": {
+            "plan": sub.plan,
+            "status": sub.status,
+            "startedAt": sub.started_at.isoformat() if sub.started_at else "",
+            "expiresAt": sub.expires_at.isoformat() if sub.expires_at else "",
+        }})
 
 
 def map_status(status):
@@ -812,6 +917,8 @@ def execute_sync(trigger="manual"):
         epl_payload, epl_status = load_epl_frontend_payload()
         worldcup_payload, worldcup_status = load_worldcup_frontend_payload()
         analysis_files = persist_analysis_files()
+        ai_queue = enqueue_analysis_jobs()
+        ai_run = run_analysis_jobs()
         counts = db_counts()
         summary = {
             "epl": {
@@ -827,6 +934,8 @@ def execute_sync(trigger="manual"):
                 "error": worldcup_payload.get("error", ""),
             },
             "analysisFiles": analysis_files,
+            "aiQueue": ai_queue,
+            "aiRun": ai_run,
             "database": counts,
         }
         ok = epl_status == 200 or worldcup_status == 200
@@ -848,6 +957,8 @@ def execute_sync(trigger="manual"):
             "epl": summary["epl"],
             "worldcup": summary["worldcup"],
             "analysis_files": analysis_files,
+            "ai_queue": ai_queue,
+            "ai_run": ai_run,
             "database": counts,
             "syncRun": run_payload,
             "updated": cst_now().isoformat(),
@@ -914,6 +1025,9 @@ def health():
             "intervalMinutes": AUTO_SYNC_INTERVAL_MINUTES,
             "latest": latest_sync_run(),
         },
+        "ai": {
+            "jobs": analysis_job_stats(),
+        },
         "updated": cst_now().isoformat(),
     }), 200
 
@@ -934,6 +1048,55 @@ def admin_sync_runs():
         return jsonify({
             "count": len(rows),
             "runs": [sync_run_payload(row) for row in rows],
+            "updated": cst_now().isoformat(),
+        })
+
+
+def analysis_job_payload(row):
+    return {
+        "id": row.id,
+        "matchId": row.match_id,
+        "status": row.status,
+        "priority": row.priority,
+        "model": row.model,
+        "promptHash": row.prompt_hash,
+        "attempts": row.attempts,
+        "totalTokens": row.total_tokens,
+        "error": row.error,
+        "createdAt": row.created_at.isoformat() if row.created_at else "",
+        "updatedAt": row.updated_at.isoformat() if row.updated_at else "",
+    }
+
+
+@app.route("/api/admin/analysis/enqueue", methods=["POST"])
+def admin_analysis_enqueue():
+    if not is_admin_request():
+        return jsonify({"error": "Forbidden"}), 403
+    result = enqueue_analysis_jobs()
+    return jsonify({"ok": True, **result, "stats": analysis_job_stats(), "updated": cst_now().isoformat()})
+
+
+@app.route("/api/admin/analysis/run", methods=["POST"])
+def admin_analysis_run():
+    if not is_admin_request():
+        return jsonify({"error": "Forbidden"}), 403
+    result = run_analysis_jobs()
+    return jsonify({"ok": bool(result.get("enabled")), **result, "stats": analysis_job_stats(), "updated": cst_now().isoformat()})
+
+
+@app.route("/api/admin/analysis/jobs")
+def admin_analysis_jobs():
+    if not is_admin_request():
+        return jsonify({"error": "Forbidden"}), 403
+    limit = min(100, max(1, int(request.args.get("limit", "30"))))
+    with session_scope() as session:
+        rows = session.scalars(
+            select(AnalysisJob).order_by(AnalysisJob.created_at.desc()).limit(limit)
+        ).all()
+        return jsonify({
+            "count": len(rows),
+            "jobs": [analysis_job_payload(row) for row in rows],
+            "stats": analysis_job_stats(),
             "updated": cst_now().isoformat(),
         })
 
@@ -1005,6 +1168,112 @@ def matches_alias():
     """Combined match feed for the NAS frontend."""
     payload, status = load_combined_matches_payload()
     return jsonify(payload), status
+
+
+def match_matches_league(item, league_key):
+    text = f"{item.get('league', '')} {item.get('competition', '')}".lower()
+    if league_key == "worldcup":
+        return "world cup" in text or "世界杯" in text
+    if league_key == "epl":
+        return "premier league" in text or "英超" in text
+    return False
+
+
+def odds_snapshot_payload(row):
+    return {
+        "id": row.id,
+        "market": row.market,
+        "selection": row.selection,
+        "price": row.price,
+        "point": row.point,
+        "source": row.source,
+        "bookmaker": row.bookmaker,
+        "capturedAt": row.captured_at.isoformat() if row.captured_at else "",
+    }
+
+
+def analysis_payload(row, plan="free"):
+    payload = row.payload or {}
+    analysis = payload.get("analysis") if isinstance(payload, dict) else None
+    if plan != "pro" and isinstance(analysis, dict):
+        payload = {
+            **payload,
+            "analysis": {
+                "summary": analysis.get("summary", ""),
+                "confidence": analysis.get("confidence", 0),
+                "best_pick": analysis.get("best_pick", {}),
+                "pro_locked": True,
+            },
+        }
+    return {
+        "id": row.id,
+        "status": row.status,
+        "model": row.model,
+        "payload": payload,
+        "markdown": (row.markdown or "") if plan == "pro" else "",
+        "createdAt": row.created_at.isoformat() if row.created_at else "",
+    }
+
+
+@app.route("/api/matches/<league_key>/<path:source_id>")
+def match_detail(league_key, source_id):
+    """Single match detail for the frontend detail panel."""
+    if league_key not in {"worldcup", "epl"}:
+        return jsonify({"error": "Unsupported league"}), 404
+    plan = current_plan()
+
+    payload, status = load_combined_matches_payload()
+    if status != 200:
+        return jsonify({"error": "Match feed unavailable"}), status
+
+    match = None
+    for item in payload.get("matches", []):
+        if str(item.get("id", "")) == source_id and match_matches_league(item, league_key):
+            match = item
+            break
+    if not match:
+        return jsonify({"error": "Match not found"}), 404
+
+    snapshots = []
+    analyses = []
+    db_match_id = None
+    try:
+        with session_scope() as session:
+            row = session.scalar(
+                select(Match).where(Match.competition_key == league_key, Match.source_id == source_id)
+            )
+            if row:
+                db_match_id = row.id
+                snapshots = [
+                    odds_snapshot_payload(item)
+                    for item in session.scalars(
+                        select(OddsSnapshot)
+                        .where(OddsSnapshot.match_id == row.id)
+                        .order_by(OddsSnapshot.captured_at.desc())
+                        .limit(60)
+                    ).all()
+                ]
+                analyses = [
+                    analysis_payload(item, plan)
+                    for item in session.scalars(
+                        select(AnalysisResult)
+                        .where(AnalysisResult.match_id == row.id)
+                        .order_by(AnalysisResult.created_at.desc())
+                        .limit(10)
+                    ).all()
+                ]
+    except Exception as exc:
+        print(f"[DB] match detail failed: {exc}")
+
+    return jsonify({
+        "match": match,
+        "league": league_key,
+        "dbMatchId": db_match_id,
+        "subscription": {"plan": plan},
+        "oddsSnapshots": snapshots,
+        "analysisResults": analyses,
+        "updated": cst_now().isoformat(),
+    })
 
 
 @app.route("/api/worldcup/recommendations")
