@@ -274,21 +274,47 @@ const marketMap={h2h:'胜平负',totals:'大小球','1x2':'胜平负','1X2':'胜
 const marketMapEn={h2h:'H2H',totals:'O/U','1x2':'1X2','1X2':'1X2','Match Winner':'Match Winner',asian_handicap:'Asian Handicap',double_chance:'Double Chance',btts:'Both Teams to Score'};
 const selectionMap={home:'主胜',draw:'平局',away:'客胜',over:'大球',under:'小球',yes:'是',no:'否','1':'主胜','X':'平局','2':'客胜'};
 const selectionMapEn={home:'Home',draw:'Draw',away:'Away',over:'Over',under:'Under',yes:'Yes',no:'No','1':'Home','X':'Draw','2':'Away'};
-const sourceMap={'the-odds-api':'The Odds API','api-football':'API-Football','football-data.org':'football-data.org',database:'数据库',openfootball:'OpenFootball'};
+const sourceMap={'the-odds-api':'The Odds API','api-football':'API-Football','football-data.org':'football-data.org',database:'数据库',openfootball:'OpenFootball',pinnacle:'平博',Pinnacle:'平博'};
 function localizeMarket(v){const k=(v||'').toLowerCase();return currentLang==='en'?(marketMapEn[k]||marketMap[k]||v):(marketMap[k]||v)}
 function localizeSelection(v){const k=(v||'').toLowerCase();return currentLang==='en'?(selectionMapEn[k]||selectionMap[k]||v):(selectionMap[k]||v)}
-function localizeSource(v){return sourceMap[v]||v}
+function localizeBookmaker(v){const src=sourceMap[v];if(src)return src;const k=(v||'').toLowerCase();return sourceMap[k]||v}
 function localizeTime(iso){if(!iso)return '-';try{const d=new Date(iso);return d.toLocaleString('zh-CN',{hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(e){return iso}}
 
 function currentOddsBox(m){
   if(!hasOdds(m))return `<div class="detail-note">${pickDesc(m)}</div>`;
   const h=m.odds.h2h||{};
   const fmt=v=>v?Number(v).toFixed(2):'-';
-  return `${oddsHtml(m)}<div class="kv"><span>${t('bookmaker')}</span><span>${esc(localizeSource(m.odds.source||m.odds.bookmaker||''))}</span><span>${t('updatedAt')}</span><span>${esc(localizeTime(m.odds.updated))}</span></div>`;
+  return `${oddsHtml(m)}<div class="detail-note" style="margin-top:8px;font-size:12px">主 ${fmt(h.home)} · 平 ${fmt(h.draw)} · 客 ${fmt(h.away)}</div>`;
+}
+function multiOddsBox(m){
+  if(!hasOdds(m))return `<div class="detail-note">${pickDesc(m)}</div>`;
+  const h=m.odds.h2h||{};
+  const fmt=v=>v?Number(v).toFixed(2):'-';
+  const src=localizeBookmaker(m.odds.bookmaker||m.odds.source||'');
+  const updated=localizeTime(m.odds.updated);
+  return `<div class="kv"><span>胜平负</span><span>主 ${fmt(h.home)} · 平 ${fmt(h.draw)} · 客 ${fmt(h.away)}</span><span>来源</span><span>${esc(src)}</span><span>更新</span><span>${esc(updated)}</span></div>`;
 }
 function snapshotsHtml(items){
   if(!items||!items.length)return `<div class="detail-note">${t('noHistory')}</div>`;
-  return `<div class="snapshot-list">${items.map(s=>`<div class="snapshot-item"><span>${esc(localizeMarket(s.market))} · ${esc(localizeSelection(s.selection))} · ${esc(localizeSource(s.bookmaker||s.source||''))} · ${esc(localizeTime(s.capturedAt))}</span><span class="snapshot-price">${Number(s.price).toFixed(2)}</span></div>`).join('')}</div>`;
+  // Group snapshots by time for readability
+  const grouped=new Map();
+  for(const s of items){
+    const time=localizeTime(s.capturedAt);
+    if(!grouped.has(time))grouped.set(time,[]);
+    grouped.get(time).push(s);
+  }
+  let html='';
+  for(const [time,snapshots] of grouped){
+    const picks=snapshots.map(s=>{
+      const market=esc(localizeMarket(s.market));
+      const selection=esc(localizeSelection(s.selection));
+      const price=Number(s.price).toFixed(2);
+      const book=esc(localizeBookmaker(s.bookmaker||s.source||''));
+      return `<span>${market}·${selection} <span class="snapshot-price">${price}</span> <span style="color:var(--muted);font-size:11px">${book}</span></span>`;
+    }).join(' · ');
+    html+=`<div class="snapshot-item"><span style="color:var(--muted);font-size:11px">${esc(time)}</span><span>${picks}</span></div>`;
+  }
+  return `<div class="snapshot-list">${html}</div>`;
 }
 function analysisHtml(items,m){
   if(items&&items.length){
@@ -328,7 +354,7 @@ function renderDetail(m,data){
   $('detailTitle').textContent=`${home(m)} vs ${away(m)}`;
   $('detailSub').textContent=`${leagueName(m)} · ${dateText(m)} ${m.time||''}`;
   $('detailBody').innerHTML=`
-    <div class="detail-box"><h3>${t('basicInfo')}</h3>${detailRows([[t('stage'),stageLabel(m.stage)||groupTitle(m)],[t('status'),statusName(m.status)],[t('venue'),m.venue||'-'],[t('city'),m.city||'-'],[t('source'),m.competition||leagueName(m)]])}</div>
+    <div class="detail-box"><h3>${t('basicInfo')}</h3>${detailRows([[t('stage'),stageLabel(m.stage)||groupTitle(m)||'未公布'],[t('status'),statusName(m.status)],[t('venue'),m.venue||'未公布'],[t('city'),m.city||'未公布']])}</div>
     <div class="detail-box"><h3>${t('indexInfo')}</h3>${currentOddsBox(m)}</div>
     <div class="detail-box"><h3>${t('aiInfo')}</h3>${analysisHtml(data.analysisResults,m)}</div>
     <div class="detail-box"><h3>${t('historyInfo')}</h3>${snapshotsHtml(data.oddsSnapshots)}</div>`;
