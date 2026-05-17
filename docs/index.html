@@ -32,11 +32,13 @@ body{padding-top:72px}button,input{font:inherit}button{cursor:pointer}a{color:in
 .tab{height:36px;padding:0 15px;border:0;background:transparent;color:#8fa3b7;border-radius:8px;font-size:14px;font-weight:700;white-space:nowrap}.tab.active{background:var(--blue-soft);color:#49b2ff}.light .tab{color:#5c7083}.light .tab.active{background:#dbeafe;color:#0f5ec7}
 .quick-btn{height:36px;padding:0 15px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:#8fa3b7;font-size:14px;font-weight:700;white-space:nowrap}
 .quick-btn.active{background:var(--blue-soft);color:#49b2ff;border-color:var(--blue-soft)}
+.year-select{height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:#8fa3b7;padding:0 12px;font-size:14px;font-weight:700;outline:0;white-space:nowrap;cursor:pointer}.light .year-select{background:#fff;border-color:#cbd8e5;color:#172331}
 .section-block{margin-top:22px}.section-title{font-size:17px;font-weight:800;margin-bottom:12px;color:var(--text-strong)}
 .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.match-card{background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:206px;padding:14px;display:grid;grid-template-rows:auto 1fr auto;gap:12px;box-shadow:var(--shadow)}.match-card.has-odds{border-color:rgba(43,194,118,.65);box-shadow:0 0 0 1px rgba(43,194,118,.16),var(--shadow)}
-.card-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;font-weight:700}.card-status{color:#77d59b}.odds-badge{display:inline-flex;align-items:center;height:22px;border-radius:999px;background:rgba(43,194,118,.14);border:1px solid rgba(43,194,118,.34);color:#74e1a5;padding:0 8px;font-size:12px;font-weight:800}.card-teams{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}.card-team{text-align:center;min-width:0}.team-code{height:28px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;margin-bottom:7px;color:#d8e2eb;font-weight:800}.team-code.text{font-size:13px;letter-spacing:.4px}.card-name{font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-time{text-align:center;min-width:82px;color:#d8e2eb;font-size:13px;line-height:1.55}.scoreline{display:block;font-size:23px;line-height:1.2;color:#fff;font-weight:800;margin-bottom:3px}.card-ai{border-top:1px solid rgba(255,255,255,.08);padding-top:10px;font-size:13px;color:#a7b6c5;line-height:1.5}.odds-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.odd-pill{border-radius:7px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);padding:6px 7px;font-size:12px;font-weight:800;text-align:center}.odd-home{color:var(--green)}.odd-draw{color:var(--amber)}.odd-away{color:#5aa7ff}.ai-line{display:flex;justify-content:space-between;gap:10px;margin-top:5px;font-weight:700}.ai-line span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ai-line span:last-child{color:#64d69a;white-space:nowrap}.empty{border:1px dashed var(--line);border-radius:12px;padding:48px;text-align:center;color:var(--muted);grid-column:1/-1}
+.card-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;font-weight:700}.card-meta-left{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.card-meta-actions{display:flex;align-items:center;gap:8px;flex:none}.fav-btn{width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:15px;line-height:1}.fav-btn.active{color:var(--amber);border-color:rgba(244,201,93,.55);background:rgba(244,201,93,.12)}.card-status{color:#77d59b}.odds-badge{display:inline-flex;align-items:center;height:22px;border-radius:999px;background:rgba(43,194,118,.14);border:1px solid rgba(43,194,118,.34);color:#74e1a5;padding:0 8px;font-size:12px;font-weight:800}.card-teams{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}.card-team{text-align:center;min-width:0}.team-code{height:28px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;margin-bottom:7px;color:#d8e2eb;font-weight:800}.team-code.text{font-size:13px;letter-spacing:.4px}.card-name{font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-time{text-align:center;min-width:82px;color:#d8e2eb;font-size:13px;line-height:1.55}.scoreline{display:block;font-size:23px;line-height:1.2;color:#fff;font-weight:800;margin-bottom:3px}.card-ai{border-top:1px solid rgba(255,255,255,.08);padding-top:10px;font-size:13px;color:#a7b6c5;line-height:1.5}.odds-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.odd-pill{border-radius:7px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);padding:6px 7px;font-size:12px;font-weight:800;text-align:center}.odd-home{color:var(--green)}.odd-draw{color:var(--amber)}.odd-away{color:#5aa7ff}.ai-line{display:flex;justify-content:space-between;gap:10px;margin-top:5px;font-weight:700}.ai-line span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ai-line span:last-child{color:#64d69a;white-space:nowrap}.empty{border:1px dashed var(--line);border-radius:12px;padding:48px;text-align:center;color:var(--muted);grid-column:1/-1}
 .backtop{position:fixed;right:22px;bottom:22px;z-index:60;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);color:var(--text);font-size:22px;line-height:1;box-shadow:var(--shadow);opacity:0;pointer-events:none;transform:translateY(8px);transition:.18s ease}.backtop.show{opacity:1;pointer-events:auto;transform:translateY(0)}
 .auth-modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(5,10,16,.62);padding:20px}.auth-modal.show{display:flex}.auth-panel{width:min(420px,100%);background:var(--bar);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:22px}.auth-panel h2{font-size:20px;margin-bottom:16px}.auth-form{display:grid;gap:12px}.auth-form label{display:grid;gap:6px;color:var(--muted);font-size:13px;font-weight:700}.auth-form input{height:42px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--text);padding:0 12px;outline:0}.auth-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}.auth-actions button{height:36px;border-radius:9px;padding:0 14px;font-weight:800}.auth-cancel{border:1px solid var(--line);background:transparent;color:var(--text)}.auth-submit{border:1px solid var(--blue);background:var(--blue);color:#fff}.auth-message{min-height:18px;color:var(--muted);font-size:13px}.auth-message.error{color:var(--red)}.auth-message.ok{color:var(--green)}
+.profile-panel{width:min(760px,100%)}.profile-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:14px}.profile-user{color:var(--muted);font-size:13px;margin-top:4px}.profile-close{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);font-size:20px}.profile-tabs{display:flex;gap:8px;margin-bottom:12px}.profile-tab{height:34px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--muted);padding:0 13px;font-weight:800}.profile-tab.active{background:var(--blue-soft);color:#49b2ff}.profile-list{display:grid;gap:9px;max-height:52vh;overflow:auto}.profile-item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;border:1px solid var(--line-soft);border-radius:8px;background:var(--surface);padding:11px}.profile-title{font-weight:800;font-size:14px}.profile-sub{color:var(--muted);font-size:12px;margin-top:3px}.profile-item button{height:31px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);padding:0 10px;font-weight:800}.profile-empty{border:1px dashed var(--line);border-radius:10px;padding:28px;text-align:center;color:var(--muted)}
 .detail-modal{position:fixed;inset:0;z-index:90;display:none;background:rgba(5,10,16,.62);padding:20px;overflow:auto}.detail-modal.show{display:block}.detail-panel{width:min(1180px,100%);margin:26px auto;background:var(--bar);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:22px}.detail-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}.detail-title{font-size:22px;font-weight:800;line-height:1.25}.detail-sub{margin-top:6px;color:var(--muted);font-size:13px;font-weight:700}.detail-close{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);font-size:20px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.detail-box{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px}.detail-box.wide{grid-column:1/-1}.detail-box h3{font-size:15px;margin-bottom:10px}.kv{display:grid;grid-template-columns:104px 1fr;gap:8px;font-size:13px;line-height:1.55}.kv span:nth-child(odd){color:var(--muted);font-weight:700}.detail-note{color:var(--muted);font-size:13px;line-height:1.6}.source-odds{display:grid;gap:9px}.source-row{border:1px solid var(--line-soft);border-radius:8px;padding:10px;background:rgba(255,255,255,.025)}.source-head{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;font-weight:700;margin-bottom:8px}.source-line{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.snapshot-table,.stats-table{width:100%;border-collapse:collapse;font-size:12px}.snapshot-table th,.snapshot-table td,.stats-table th,.stats-table td{padding:7px 6px;border-bottom:1px solid var(--line-soft);text-align:left}.snapshot-table th,.stats-table th{color:var(--muted);font-weight:800}.snapshot-price{font-weight:800;color:var(--green)}.event-list{display:grid;gap:7px}.event-item{display:grid;grid-template-columns:54px 1fr auto;gap:8px;align-items:center;font-size:13px;border-bottom:1px solid var(--line-soft);padding-bottom:7px}.lineups{display:grid;grid-template-columns:1fr 1fr;gap:14px}.lineup-team h4{font-size:13px;margin-bottom:8px}.lineup-team ol{padding-left:20px;color:var(--muted);font-size:12px;line-height:1.7}
 .light .topbar{box-shadow:0 1px 0 rgba(18,32,46,.04),0 10px 26px rgba(18,32,46,.06)}.light .logo small{color:#64788b}.light .search{background:#f4f7fb;border-color:#cbd8e5;color:#52677a}.light .quick-btn{background:#fff;border-color:#cbd8e5;color:#172331}.light .quick-btn.active{background:#dbeafe;color:#0f5ec7}.light .match-card{background:#fff;border-color:#d7e1eb;box-shadow:0 10px 24px rgba(23,35,49,.08)}.light .match-card.has-odds{border-color:rgba(15,122,69,.55);box-shadow:0 0 0 1px rgba(15,122,69,.10),0 10px 24px rgba(23,35,49,.08)}.light .odds-badge{background:#e7f7ef;border-color:#b8e7ce;color:#0f7a45}.light .odd-pill{background:#f6f9fc;border-color:#e0e8f1}.light .card-meta{color:#657789}.light .card-status{color:#0f7a45}.light .team-code{color:#203142}.light .card-time{color:#34485c}.light .scoreline{color:#0b1622}.light .card-ai{border-top-color:#e2e9f1;color:#52677a}.light .ai-line span:last-child{color:#0f7a45}.light .empty{background:#fff;border-color:#cfd9e5;color:#5c7083}.light .detail-panel{background:#fff}.light .detail-box{background:#f8fafc;border-color:#dce5ee}
 @media(max-width:1180px){.topbar{grid-template-columns:190px 1fr auto}.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -75,6 +77,11 @@ body{padding-top:72px}button,input{font:inherit}button{cursor:pointer}a{color:in
         <button class="tab" data-league="epl" data-i18n="epl">英超</button>
     </div>
     <div class="quick-filters" id="quickFilters">
+      <select class="year-select" id="yearSelect" aria-label="赛季">
+        <option value="all">全部赛季</option>
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+      </select>
       <button class="quick-btn active" data-filter="recent7">📅 近 7 天</button>
       <button class="quick-btn" data-filter="with-odds">🔥 有指数</button>
       <button class="quick-btn" data-filter="finished">✅ 已结束</button>
@@ -96,6 +103,22 @@ body{padding-top:72px}button,input{font:inherit}button{cursor:pointer}a{color:in
     </form>
   </div>
 </div>
+<div class="auth-modal" id="profileModal" aria-hidden="true">
+  <div class="auth-panel profile-panel">
+    <div class="profile-head">
+      <div>
+        <h2 id="profileTitle">个人中心</h2>
+        <div class="profile-user" id="profileUser"></div>
+      </div>
+      <button class="profile-close" id="profileClose" aria-label="关闭">×</button>
+    </div>
+    <div class="profile-tabs">
+      <button class="profile-tab active" data-profile-tab="favorites" id="profileFavoritesTab">收藏</button>
+      <button class="profile-tab" data-profile-tab="history" id="profileHistoryTab">历史记录</button>
+    </div>
+    <div class="profile-list" id="profileList"></div>
+  </div>
+</div>
 <div class="detail-modal" id="detailModal" aria-hidden="true">
   <div class="detail-panel">
     <div class="detail-top">
@@ -110,11 +133,13 @@ body{padding-top:72px}button,input{font:inherit}button{cursor:pointer}a{color:in
 </div>
 
 <script>
-let allMatches=[],sourceMeta={},currentLeague='worldcup',currentQuickFilter='recent7',authMode='login';
+let allMatches=[],sourceMeta={},currentLeague='worldcup',currentQuickFilter='recent7',currentYear='all',authMode='login';
 let currentLang=localStorage.getItem('ai-football-lang')||'zh';
 let currentTheme=localStorage.getItem('ai-football-theme')||'dark';
 let authToken=localStorage.getItem('ai-football-token')||'';
 let currentUser=null;
+let profileTab='favorites';
+let profileData=JSON.parse(localStorage.getItem('ai-football-profile')||'{"favorites":[],"history":[]}');
 const $=id=>document.getElementById(id);
 function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 const dict={
@@ -232,7 +257,16 @@ function groupRank(title){
 }
 function sortMatches(list){return [...list].sort((a,b)=>(hasOdds(b)-hasOdds(a))||`${a.date||''} ${a.time||''}`.localeCompare(`${b.date||''} ${b.time||''}`))}
 function matchText(m){return [league(m),m.stage,m.group,home(m),away(m),pickLabel(m),pickDesc(m),dateText(m)].join(' ').toLowerCase()}
-function selectedLeagueMatch(m){return currentLeague==='worldcup'?isWC(m):isEPL(m)}
+function selectedLeagueMatch(m){
+  if(currentLeague==='worldcup'&&!isWC(m))return false;
+  if(currentLeague==='epl'&&!isEPL(m))return false;
+  return true;
+}
+function selectedYearMatch(m){
+  if(currentYear==='all')return true;
+  const d=m.date||'';
+  return d.startsWith(currentYear);
+}
 function quickFilterMatch(m){
   if(currentQuickFilter==='all')return true;
   if(currentQuickFilter==='with-odds')return hasOdds(m);
@@ -246,7 +280,7 @@ function quickFilterMatch(m){
 }
 function filtered(){
   const q=$('searchInput').value.trim().toLowerCase();
-  return allMatches.filter(m=>selectedLeagueMatch(m)&&quickFilterMatch(m)&&(!q||matchText(m).includes(q)));
+  return allMatches.filter(m=>selectedLeagueMatch(m)&&selectedYearMatch(m)&&quickFilterMatch(m)&&(!q||matchText(m).includes(q)));
 }
 function render(){
   const items=sortMatches(filtered());
@@ -269,6 +303,70 @@ function statusBadge(m){
 function leagueKeyOf(m){return isWC(m)?'worldcup':'epl'}
 function findLocalMatch(leagueKey,id){return allMatches.find(m=>String(m.id)===String(id)&&leagueKeyOf(m)===leagueKey)}
 function detailRows(rows){return `<div class="kv">${rows.map(([k,v])=>`<span>${esc(k)}</span><span>${esc(v||'-')}</span>`).join('')}</div>`}
+function profileKey(leagueKey,id){return `${leagueKey}:${id}`}
+function matchProfileItem(m){
+  const leagueKey=leagueKeyOf(m);
+  return {league:leagueKey,id:String(m.id),title:`${home(m)} vs ${away(m)}`,sub:`${leagueName(m)} · ${dateText(m)} ${m.time||''}`};
+}
+function normalizeProfile(){
+  profileData.favorites=Array.isArray(profileData.favorites)?profileData.favorites:[];
+  profileData.history=Array.isArray(profileData.history)?profileData.history:[];
+}
+function isFavorite(leagueKey,id){normalizeProfile();return profileData.favorites.some(x=>profileKey(x.league,x.id)===profileKey(leagueKey,id))}
+async function saveProfileData(){
+  normalizeProfile();
+  localStorage.setItem('ai-football-profile',JSON.stringify(profileData));
+  if(!authToken)return;
+  try{await fetch('/api/account/profile-data',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${authToken}`},body:JSON.stringify(profileData)})}catch(e){}
+}
+async function loadProfileData(){
+  normalizeProfile();
+  if(!authToken){render();return}
+  try{
+    const data=await fetchJson('/api/account/profile-data');
+    profileData=(data.profile)||profileData;
+    normalizeProfile();
+    localStorage.setItem('ai-football-profile',JSON.stringify(profileData));
+  }catch(e){}
+  render();
+}
+function toggleFavorite(leagueKey,id){
+  const m=findLocalMatch(leagueKey,id);
+  if(!m)return;
+  normalizeProfile();
+  const key=profileKey(leagueKey,id);
+  if(isFavorite(leagueKey,id))profileData.favorites=profileData.favorites.filter(x=>profileKey(x.league,x.id)!==key);
+  else profileData.favorites=[{...matchProfileItem(m),savedAt:new Date().toISOString()},...profileData.favorites].slice(0,120);
+  saveProfileData();
+  render();
+  if($('profileModal').classList.contains('show'))renderProfile();
+}
+function addHistory(leagueKey,id){
+  const m=findLocalMatch(leagueKey,id);
+  if(!m)return;
+  normalizeProfile();
+  const key=profileKey(leagueKey,id);
+  profileData.history=[{...matchProfileItem(m),viewedAt:new Date().toISOString()},...profileData.history.filter(x=>profileKey(x.league,x.id)!==key)].slice(0,120);
+  saveProfileData();
+}
+function openProfile(){
+  profileTab='favorites';
+  $('profileModal').classList.add('show');
+  $('profileModal').setAttribute('aria-hidden','false');
+  renderProfile();
+}
+function closeProfile(){$('profileModal').classList.remove('show');$('profileModal').setAttribute('aria-hidden','true')}
+function renderProfile(){
+  normalizeProfile();
+  $('profileTitle').textContent=currentLang==='en'?'Profile':'个人中心';
+  $('profileUser').textContent=currentUser?(currentUser.displayName||currentUser.email):(currentLang==='en'?'Local profile':'本地记录');
+  $('profileFavoritesTab').textContent=currentLang==='en'?'Favorites':'收藏';
+  $('profileHistoryTab').textContent=currentLang==='en'?'History':'历史记录';
+  document.querySelectorAll('[data-profile-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.profileTab===profileTab));
+  const list=profileTab==='favorites'?profileData.favorites:profileData.history;
+  if(!list.length){$('profileList').innerHTML=`<div class="profile-empty">${currentLang==='en'?'No records yet':'暂无记录'}</div>`;return}
+  $('profileList').innerHTML=list.map(item=>`<div class="profile-item" data-profile-league="${esc(item.league)}" data-profile-id="${esc(item.id)}"><div><div class="profile-title">${esc(item.title||item.id)}</div><div class="profile-sub">${esc(item.sub||'')}</div></div><button data-open-profile-match>${currentLang==='en'?'Open':'查看'}</button></div>`).join('');
+}
 // Snapshots localization
 const marketMap={h2h:'胜平负',totals:'大小球','1x2':'胜平负','1X2':'胜平负','Match Winner':'胜平负',asian_handicap:'亚盘',double_chance:'双选',btts:'双方进球',spread:'让球盘'};
 const marketMapEn={h2h:'H2H',totals:'O/U','1x2':'1X2','1X2':'1X2','Match Winner':'Match Winner',asian_handicap:'Asian Handicap',double_chance:'Double Chance',btts:'Both Teams to Score',spread:'Handicap'};
@@ -308,19 +406,23 @@ function multiOddsBox(m){
 }
 function snapshotsHtml(items){
   if(!items||!items.length)return `<div class="detail-note">${t('noHistory')}</div>`;
-  const seen=new Map();
+  // Group by time for readability, show latest per (market+selection+source+bookmaker+point)
+  const grouped=new Map();
   for(const s of items){
     const key=`${s.market}|${s.selection}|${s.point||''}|${s.source||''}|${s.bookmaker||''}`;
-    if(!seen.has(key)||String(s.capturedAt||'')>String(seen.get(key).capturedAt||''))seen.set(key,s);
+    const existing=grouped.get(key);
+    if(!existing||String(s.capturedAt||'')>String(existing.capturedAt||'')){
+      grouped.set(key,s);
+    }
   }
-  const rows=[...seen.values()].slice(0,12).map(s=>{
+  const rows=[...grouped.values()].map(s=>{
     const market=esc(localizeMarket(s.market));
     const selection=esc(localizeSelection(s.selection));
     const price=Number(s.price).toFixed(2);
     const time=esc(localizeTime(s.capturedAt));
     return `<tr><td>${market}</td><td>${selection}</td><td class="snapshot-price">${price}</td><td>${time}</td></tr>`;
   }).join('');
-  return `<table class="snapshot-table"><thead><tr><th>类型</th><th>方向</th><th>指数</th><th>采集</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table class="snapshot-table"><thead><tr><th>类型</th><th>方向</th><th>指数</th><th>采集时间</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 function analysisHtml(items,m){
   if(items&&items.length){
@@ -426,6 +528,7 @@ function lineupsHtml(data){
 }
 async function openDetail(leagueKey,id){
   const local=findLocalMatch(leagueKey,id);
+  addHistory(leagueKey,id);
   $('detailTitle').textContent=local?`${home(local)} vs ${away(local)}`:t('detailLoading');
   $('detailSub').textContent=local?`${leagueName(local)} · ${dateText(local)} ${local.time||''}`:'';
   $('detailBody').innerHTML=`<div class="detail-box"><div class="detail-note">${t('detailLoading')}</div></div>`;
@@ -446,7 +549,7 @@ function renderDetail(m,data){
     <div class="detail-box"><h3>${t('basicInfo')}</h3>${detailRows([[t('stage'),stageLabel(m.stage)||groupTitle(m)||'未公布'],[t('status'),statusName(m.status)],[t('venue'),m.venue||'未公布'],[t('city'),m.city||'未公布']])}</div>
     <div class="detail-box"><h3>${t('indexInfo')}</h3>${sourceOddsHtml(data.oddsSources,m)}</div>
     <div class="detail-box"><h3>${t('aiInfo')}</h3>${analysisHtml(data.analysisResults,m)}</div>
-    <div class="detail-box"><h3>${t('historyInfo')}</h3>${snapshotsHtml(data.recentOddsBatch||data.oddsSnapshots)}</div>
+    <div class="detail-box"><h3>${t('historyInfo')}</h3>${snapshotsHtml(data.oddsSnapshots)}</div>
     <div class="detail-box wide"><h3>${currentLang==='en'?'Official Public Reference':'官方公开参考'}</h3>${officialMarketHtml(data)}</div>
     <div class="detail-box wide"><h3>${currentLang==='en'?'Historical Data':'历史数据'}</h3>${historicalStatsHtml(data)}</div>
     <div class="detail-box wide"><h3>赛况事件</h3>${eventsHtml(data)}</div>
@@ -469,8 +572,10 @@ function card(m){
   const homeTop=isEPL(m)?`<div class="team-code text">${teamCode(m,'home')}</div>`:`<div class="team-code">${flag(m.home)}</div>`;
   const awayTop=isEPL(m)?`<div class="team-code text">${teamCode(m,'away')}</div>`:`<div class="team-code">${flag(m.away)}</div>`;
   const leagueKey=isWC(m)?'worldcup':'epl';
-  return `<article class="match-card ${hasOdds(m)?'has-odds':''}" data-match-id="${esc(m.id)}" data-league-key="${leagueKey}" tabindex="0"><div class="card-meta"><span>${stageLabel(m.stage)||leagueName(m)}</span>${statusBadge(m)}</div><div class="card-teams"><div class="card-team">${homeTop}<div class="card-name">${home(m)}</div></div><div class="card-time">${centerText(m)}</div><div class="card-team">${awayTop}<div class="card-name">${away(m)}</div></div></div><div class="card-ai"><div>${pickDesc(m)}</div>${oddsHtml(m)}<div class="ai-line"><span>${pickLabel(m)}</span><span>${pct?pct+'%':t('pending')}</span></div></div></article>`;
+  const fav=isFavorite(leagueKey,m.id);
+  return `<article class="match-card ${hasOdds(m)?'has-odds':''}" data-match-id="${esc(m.id)}" data-league-key="${leagueKey}" tabindex="0"><div class="card-meta"><span class="card-meta-left">${stageLabel(m.stage)||leagueName(m)}</span><span class="card-meta-actions">${statusBadge(m)}<button class="fav-btn ${fav?'active':''}" data-fav-btn aria-label="${fav?'取消收藏':'收藏'}">${fav?'★':'☆'}</button></span></div><div class="card-teams"><div class="card-team">${homeTop}<div class="card-name">${home(m)}</div></div><div class="card-time">${centerText(m)}</div><div class="card-team">${awayTop}<div class="card-name">${away(m)}</div></div></div><div class="card-ai"><div>${pickDesc(m)}</div>${oddsHtml(m)}<div class="ai-line"><span>${pickLabel(m)}</span><span>${pct?pct+'%':t('pending')}</span></div></div></article>`;
 }
+function setYear(value){currentYear=value;document.getElementById('yearSelect').value=value;render()}
 function setLeague(value){currentLeague=value;document.querySelectorAll('[data-league]').forEach(el=>el.classList.toggle('active',el.dataset.league===value));render()}
 function setQuickFilter(value){currentQuickFilter=value;document.querySelectorAll('[data-filter]').forEach(el=>el.classList.toggle('active',el.dataset.filter===value));render()}
 function setTheme(value){currentTheme=value;localStorage.setItem('ai-football-theme',value);document.body.classList.toggle('light',value==='light');document.querySelectorAll('[data-theme]').forEach(el=>el.classList.toggle('active',el.dataset.theme===value))}
@@ -482,21 +587,26 @@ function updateQuickFilterText(){
     if(label)btn.textContent=label;
   });
 }
-function updateAuthText(){ $('displayNameLabel').textContent=t('displayName');$('emailLabel').textContent=t('email');$('passwordLabel').textContent=t('password');$('authCancel').textContent=t('cancel');$('authTitle').textContent=t(authMode);$('authSubmit').textContent=t(authMode);if(currentUser){$('loginBtn').textContent=currentUser.displayName||currentUser.email;$('signupBtn').textContent=t('logout')}else{$('loginBtn').textContent=t('login');$('signupBtn').textContent=t('signup')}}
+function updateAuthText(){ $('displayNameLabel').textContent=t('displayName');$('emailLabel').textContent=t('email');$('passwordLabel').textContent=t('password');$('authCancel').textContent=t('cancel');$('authTitle').textContent=t(authMode);$('authSubmit').textContent=t(authMode);if(currentUser){$('loginBtn').textContent=currentLang==='en'?'Profile':'个人中心';$('signupBtn').textContent=t('logout')}else{$('loginBtn').textContent=t('login');$('signupBtn').textContent=t('signup')}}
 function openAuth(mode){authMode=mode;$('authMessage').textContent='';$('authMessage').className='auth-message';$('displayNameInput').parentElement.style.display=mode==='signup'?'grid':'none';$('authModal').classList.add('show');$('authModal').setAttribute('aria-hidden','false');updateAuthText();setTimeout(()=>$('emailInput').focus(),0)}
 function closeAuth(){$('authModal').classList.remove('show');$('authModal').setAttribute('aria-hidden','true')}
-async function submitAuth(event){event.preventDefault();const payload={email:$('emailInput').value,password:$('passwordInput').value};if(authMode==='signup')payload.displayName=$('displayNameInput').value;const res=await fetch(`/api/auth/${authMode==='signup'?'register':'login'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await res.json().catch(()=>({}));if(!res.ok){$('authMessage').textContent=data.error||t('authError');$('authMessage').className='auth-message error';return}authToken=data.token;currentUser=data.user;localStorage.setItem('ai-football-token',authToken);$('authMessage').textContent=t('authOk');$('authMessage').className='auth-message ok';updateAuthText();setTimeout(closeAuth,400)}
-async function loadMe(){if(!authToken)return;const res=await fetch('/api/auth/me',{headers:{Authorization:`Bearer ${authToken}`}});if(!res.ok){localStorage.removeItem('ai-football-token');authToken='';currentUser=null;updateAuthText();return}const data=await res.json();currentUser=data.user;updateAuthText()}
+async function submitAuth(event){event.preventDefault();const payload={email:$('emailInput').value,password:$('passwordInput').value};if(authMode==='signup')payload.displayName=$('displayNameInput').value;const res=await fetch(`/api/auth/${authMode==='signup'?'register':'login'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await res.json().catch(()=>({}));if(!res.ok){$('authMessage').textContent=data.error||t('authError');$('authMessage').className='auth-message error';return}authToken=data.token;currentUser=data.user;localStorage.setItem('ai-football-token',authToken);$('authMessage').textContent=t('authOk');$('authMessage').className='auth-message ok';updateAuthText();await loadProfileData();setTimeout(closeAuth,400)}
+async function loadMe(){if(!authToken){loadProfileData();return}const res=await fetch('/api/auth/me',{headers:{Authorization:`Bearer ${authToken}`}});if(!res.ok){localStorage.removeItem('ai-football-token');authToken='';currentUser=null;updateAuthText();loadProfileData();return}const data=await res.json();currentUser=data.user;updateAuthText();await loadProfileData()}
+$('yearSelect').addEventListener('change',e=>setYear(e.target.value));
 document.querySelectorAll('[data-league]').forEach(btn=>btn.addEventListener('click',()=>setLeague(btn.dataset.league)));
 document.querySelectorAll('[data-filter]').forEach(btn=>btn.addEventListener('click',()=>setQuickFilter(btn.dataset.filter)));
 document.querySelectorAll('[data-theme]').forEach(btn=>btn.addEventListener('click',()=>setTheme(btn.dataset.theme)));
 document.querySelectorAll('[data-lang]').forEach(btn=>btn.addEventListener('click',()=>setLang(btn.dataset.lang)));
-$('loginBtn').addEventListener('click',()=>currentUser?null:openAuth('login'));
-$('signupBtn').addEventListener('click',()=>{if(currentUser){authToken='';currentUser=null;localStorage.removeItem('ai-football-token');updateAuthText()}else openAuth('signup')});
+$('loginBtn').addEventListener('click',()=>currentUser?openProfile():openAuth('login'));
+$('signupBtn').addEventListener('click',()=>{if(currentUser){authToken='';currentUser=null;localStorage.removeItem('ai-football-token');updateAuthText();loadProfileData();closeProfile()}else openAuth('signup')});
 $('authCancel').addEventListener('click',closeAuth);
 $('authModal').addEventListener('click',e=>{if(e.target===$('authModal'))closeAuth()});
 $('authForm').addEventListener('submit',submitAuth);
-$('sections').addEventListener('click',e=>{const card=e.target.closest('.match-card');if(card)openDetail(card.dataset.leagueKey,card.dataset.matchId)});
+$('profileClose').addEventListener('click',closeProfile);
+$('profileModal').addEventListener('click',e=>{if(e.target===$('profileModal'))closeProfile()});
+document.querySelectorAll('[data-profile-tab]').forEach(btn=>btn.addEventListener('click',()=>{profileTab=btn.dataset.profileTab;renderProfile()}));
+$('profileList').addEventListener('click',e=>{const item=e.target.closest('.profile-item');if(item&&e.target.closest('[data-open-profile-match]')){closeProfile();openDetail(item.dataset.profileLeague,item.dataset.profileId)}});
+$('sections').addEventListener('click',e=>{const card=e.target.closest('.match-card');if(!card)return;if(e.target.closest('[data-fav-btn]')){e.preventDefault();e.stopPropagation();toggleFavorite(card.dataset.leagueKey,card.dataset.matchId);return}openDetail(card.dataset.leagueKey,card.dataset.matchId)});
 $('sections').addEventListener('keydown',e=>{if(e.key==='Enter'){const card=e.target.closest('.match-card');if(card)openDetail(card.dataset.leagueKey,card.dataset.matchId)}});
 $('detailClose').addEventListener('click',closeDetail);
 $('detailModal').addEventListener('click',e=>{if(e.target===$('detailModal'))closeDetail()});

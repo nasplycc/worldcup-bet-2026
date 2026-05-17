@@ -1225,6 +1225,67 @@ def account_subscription():
     return jsonify({"subscription": get_subscription_payload(user.id)})
 
 
+def normalize_profile_items(value, limit=80):
+    if not isinstance(value, list):
+        return []
+    result = []
+    seen = set()
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        league = str(item.get("league") or "").strip()
+        match_id = str(item.get("id") or "").strip()
+        key = f"{league}:{match_id}"
+        if not league or not match_id or key in seen:
+            continue
+        seen.add(key)
+        result.append({
+            "league": league,
+            "id": match_id,
+            "title": str(item.get("title") or "")[:160],
+            "sub": str(item.get("sub") or "")[:160],
+            "savedAt": str(item.get("savedAt") or item.get("viewedAt") or ""),
+            "viewedAt": str(item.get("viewedAt") or item.get("savedAt") or ""),
+        })
+        if len(result) >= limit:
+            break
+    return result
+
+
+def preference_profile_payload(pref):
+    raw = pref.watchlist if pref and isinstance(pref.watchlist, (dict, list)) else {}
+    if isinstance(raw, list):
+        raw = {"favorites": raw, "history": []}
+    return {
+        "favorites": normalize_profile_items(raw.get("favorites"), limit=120),
+        "history": normalize_profile_items(raw.get("history"), limit=120),
+    }
+
+
+@app.route("/api/account/profile-data", methods=["GET", "POST"])
+def account_profile_data():
+    user = current_user_from_request()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    with session_scope() as session:
+        pref = session.scalar(select(UserPreference).where(UserPreference.user_id == user.id))
+        if not pref:
+            pref = UserPreference(user_id=user.id)
+            session.add(pref)
+            session.flush()
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            current = preference_profile_payload(pref)
+            payload = {
+                "favorites": normalize_profile_items(data.get("favorites", current["favorites"]), limit=120),
+                "history": normalize_profile_items(data.get("history", current["history"]), limit=120),
+            }
+            pref.watchlist = payload
+            pref.updated_at = datetime.now(timezone.utc)
+            session.flush()
+        return jsonify({"profile": preference_profile_payload(pref)})
+
+
 @app.route("/api/admin/users/<int:user_id>/subscription", methods=["POST"])
 def admin_set_subscription(user_id):
     if not is_admin_request():
