@@ -7,9 +7,6 @@ from dotenv import load_dotenv
 load_dotenv()
 import os
 import time
-import jwt
-import csv
-import io
 import threading
 from urllib.parse import urlencode
 from datetime import datetime, timezone, timedelta
@@ -21,40 +18,31 @@ from sqlalchemy import select
 
 from frontend_data import merge_worldcup_frontend, recommendations_to_frontend, schedule_to_frontend
 from state import load_json
-from db import AnalysisJob, AnalysisResult, Match, MatchData, OddsSnapshot, Subscription, SyncRun, User, UserPreference, db_counts, init_db, password_hash, seed_all, session_scope
+from db import AnalysisJob, AnalysisResult, Match, MatchData, OddsSnapshot, SyncRun, db_counts, init_db, seed_all, session_scope
 from db_sync import persist_analysis_files, persist_odds_snapshots, upsert_matches_from_frontend
 from ai_pipeline import analysis_job_stats, enqueue_analysis_jobs, run_analysis_jobs
+from auth_routes import auth_bp, current_plan, is_admin_request
+from data_sources.api_football import fetch_fixtures as fetch_api_football_fixtures, fetch_odds as fetch_api_football_odds, status_from_short as map_api_football_status, sync_match_data as sync_api_football_match_data
+from data_sources.football_data_uk import sync_match_data as sync_football_data_uk_match_data
+from data_sources.sporttery import fetch_odds as fetch_sporttery_odds, sync_match_data as sync_sporttery_match_data
+from data_sources.thesportsdb import config as thesportsdb_config, fetch_events as fetch_thesportsdb_events, sync_match_data as sync_thesportsdb_match_data
 
 app = Flask(__name__, static_folder="docs", static_url_path="")
+app.register_blueprint(auth_bp)
 ROOT = Path(__file__).resolve().parent
 
 # Config
 API_KEY = os.environ.get("FOOTBALL_DATA_API_KEY", "")
 ODDS_API_KEY = os.environ.get("THE_ODDS_API_KEY", "") or os.environ.get("ODDS_API_KEY", "")
 ODDS_API_REGIONS = os.environ.get("THE_ODDS_API_REGIONS", "eu")
-API_FOOTBALL_KEY = os.environ.get("API_FOOTBALL_KEY", "")
-JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-change-me")
-JWT_TTL_HOURS = int(os.environ.get("JWT_TTL_HOURS", "168"))
-ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
 BASE = "https://api.football-data.org/v4"
 OPENFOOTBALL_EPL_2025_26 = "https://openfootball.github.io/england/2025-26/1-premierleague.json"
 THE_ODDS_API_BASE = "https://api.the-odds-api.com/v4"
-API_FOOTBALL_BASE = "https://v3.football.api-sports.io"
-THE_SPORTSDB_KEY = os.environ.get("THE_SPORTSDB_KEY", "123")
-THE_SPORTSDB_BASE = os.environ.get("THE_SPORTSDB_BASE", "https://www.thesportsdb.com/api/v1/json").rstrip("/")
-SPORTTERY_ENABLED = os.environ.get("SPORTTERY_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
-SPORTTERY_BASE = os.environ.get("SPORTTERY_BASE", "https://webapi.sporttery.cn/gateway").rstrip("/")
-SPORTTERY_SYNC_LIMIT = max(0, int(os.environ.get("SPORTTERY_SYNC_LIMIT", "20")))
-FOOTBALL_DATA_UK_ENABLED = os.environ.get("FOOTBALL_DATA_UK_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
-FOOTBALL_DATA_UK_EPL_CSV = os.environ.get("FOOTBALL_DATA_UK_EPL_CSV", "https://www.football-data.co.uk/mmz4281/2526/E0.csv")
-FOOTBALL_DATA_UK_SYNC_LIMIT = max(0, int(os.environ.get("FOOTBALL_DATA_UK_SYNC_LIMIT", "420")))
 CACHE = {}
 CACHE_TTL = 60
 AUTO_SYNC_ENABLED = os.environ.get("AUTO_SYNC_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
 AUTO_SYNC_INTERVAL_MINUTES = max(5, int(os.environ.get("AUTO_SYNC_INTERVAL_MINUTES", "60")))
 SYNC_STARTUP_DELAY_SECONDS = max(0, int(os.environ.get("SYNC_STARTUP_DELAY_SECONDS", "20")))
-MATCH_DATA_SYNC_LIMIT = max(0, int(os.environ.get("MATCH_DATA_SYNC_LIMIT", "12")))
-THE_SPORTSDB_SYNC_LIMIT = max(0, int(os.environ.get("THE_SPORTSDB_SYNC_LIMIT", "8")))
 SYNC_PREMATCH_HOURS = max(1, int(os.environ.get("SYNC_PREMATCH_HOURS", "48")))
 SYNC_LINEUP_HOURS = max(1, int(os.environ.get("SYNC_LINEUP_HOURS", "4")))
 SYNC_LIVE_LOOKBACK_HOURS = max(1, int(os.environ.get("SYNC_LIVE_LOOKBACK_HOURS", "3")))
@@ -127,395 +115,6 @@ def fetch_public_with_cache(key, url, ttl=CACHE_TTL):
         return None
 
 
-def fetch_api_football_with_cache(key, url, ttl=CACHE_TTL):
-    now = time.time()
-    if key in CACHE and now - CACHE[key]["ts"] < ttl:
-        return CACHE[key]["data"]
-    try:
-        headers = {"x-apisports-key": API_FOOTBALL_KEY}
-        resp = requests.get(url, headers=headers, timeout=15)
-        if not resp.ok:
-            print(f"[API-Football] {url} -> {resp.status_code}: {resp.text[:200]}")
-            return None
-        data = resp.json()
-        CACHE[key] = {"data": data, "ts": now}
-        return data
-    except Exception as e:
-        print(f"[API-Football Error] {e}")
-        return None
-
-
-def fetch_api_football_fixtures(league_key):
-    cfg = league_odds_config(league_key)
-    league = cfg.get("api_football_league")
-    season = cfg.get("api_football_season")
-    if not API_FOOTBALL_KEY or not league or not season:
-        return {}
-    url = f"{API_FOOTBALL_BASE}/fixtures?league={league}&season={season}"
-    data = fetch_api_football_with_cache(f"api_football_fixtures_{league}_{season}", url, ttl=3600)
-    if not isinstance(data, dict):
-        return {}
-
-    fixtures = {}
-    for item in data.get("response", []):
-        fixture = item.get("fixture") or {}
-        teams = item.get("teams") or {}
-        home = (teams.get("home") or {}).get("name", "")
-        away = (teams.get("away") or {}).get("name", "")
-        date = match_date_key(fixture.get("date", ""))
-        if not home or not away or not date:
-            continue
-        fixtures[odds_team_key(home, away, date)] = item
-    return fixtures
-
-
-def thesportsdb_config(league_key):
-    configs = {
-        "epl": {
-            "league_id": os.environ.get("THE_SPORTSDB_EPL_LEAGUE_ID", "4328"),
-            "season": os.environ.get("THE_SPORTSDB_EPL_SEASON", "2025-2026"),
-        },
-        "worldcup": {
-            "league_id": os.environ.get("THE_SPORTSDB_WORLDCUP_LEAGUE_ID", ""),
-            "season": os.environ.get("THE_SPORTSDB_WORLDCUP_SEASON", "2026"),
-        },
-    }
-    return configs.get(league_key, {})
-
-
-def fetch_thesportsdb_with_cache(key, path, ttl=3600):
-    if not THE_SPORTSDB_KEY:
-        return None
-    now = time.time()
-    if key in CACHE and now - CACHE[key]["ts"] < ttl:
-        return CACHE[key]["data"]
-    url = f"{THE_SPORTSDB_BASE}/{THE_SPORTSDB_KEY}/{path.lstrip('/')}"
-    try:
-        resp = requests.get(url, timeout=15)
-        if not resp.ok:
-            print(f"[TheSportsDB] {path} -> {resp.status_code}: {resp.text[:200]}")
-            return None
-        data = resp.json()
-        CACHE[key] = {"data": data, "ts": now}
-        return data
-    except Exception as exc:
-        print(f"[TheSportsDB Error] {exc}")
-        return None
-
-
-def fetch_thesportsdb_events(league_key):
-    cfg = thesportsdb_config(league_key)
-    league_id = cfg.get("league_id")
-    season = cfg.get("season")
-    if not league_id or not season:
-        return {}
-    path = f"eventsseason.php?id={league_id}&s={season}"
-    data = fetch_thesportsdb_with_cache(f"thesportsdb_events_{league_id}_{season}", path, ttl=3600)
-    if not isinstance(data, dict):
-        return {}
-    events = {}
-    for item in data.get("events") or []:
-        home = item.get("strHomeTeam", "")
-        away = item.get("strAwayTeam", "")
-        date = item.get("dateEvent", "")
-        if not home or not away or not date:
-            continue
-        events[odds_team_key(home, away, date)] = item
-    return events
-
-
-def fetch_sporttery_with_cache(key, path, ttl=300):
-    if not SPORTTERY_ENABLED:
-        return None
-    now = time.time()
-    if key in CACHE and now - CACHE[key]["ts"] < ttl:
-        return CACHE[key]["data"]
-    url = f"{SPORTTERY_BASE}/{path.lstrip('/')}"
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json,text/plain,*/*",
-        "Referer": "https://www.sporttery.cn/",
-    }
-    try:
-        resp = requests.get(url, headers=headers, timeout=15)
-        if not resp.ok:
-            print(f"[Sporttery] {path} -> {resp.status_code}: {resp.text[:200]}")
-            return None
-        data = resp.json()
-        if not data.get("success"):
-            print(f"[Sporttery] {path} -> {data.get('errorCode')}: {data.get('errorMessage')}")
-            return None
-        CACHE[key] = {"data": data, "ts": now}
-        return data
-    except Exception as exc:
-        print(f"[Sporttery Error] {exc}")
-        return None
-
-
-def sporttery_league_names(league_key):
-    mapping = {
-        "epl": {"英超", "英格兰超级联赛", "英格兰超级"},
-        "worldcup": {"世界杯", "世俱杯", "FIFA世界杯"},
-    }
-    return mapping.get(league_key, set())
-
-
-def sporttery_team_alias(name):
-    mapping = {
-        "阿森纳": "arsenal",
-        "维拉": "aston villa",
-        "阿斯顿维拉": "aston villa",
-        "伯恩茅斯": "bournemouth",
-        "布伦特": "brentford",
-        "布伦特福德": "brentford",
-        "布赖顿": "brighton hove albion",
-        "布莱顿": "brighton hove albion",
-        "伯恩利": "burnley",
-        "切尔西": "chelsea",
-        "水晶宫": "crystal palace",
-        "埃弗顿": "everton",
-        "富勒姆": "fulham",
-        "利兹联": "leeds united",
-        "利物浦": "liverpool",
-        "曼城": "manchester city",
-        "曼联": "manchester united",
-        "曼彻斯特联": "manchester united",
-        "曼彻斯特城": "manchester city",
-        "纽卡斯尔": "newcastle united",
-        "纽卡": "newcastle united",
-        "纽卡斯尔联": "newcastle united",
-        "诺丁汉": "nottingham forest",
-        "诺丁汉森林": "nottingham forest",
-        "桑德兰": "sunderland",
-        "热刺": "tottenham hotspur",
-        "西汉姆": "west ham united",
-        "西汉姆联": "west ham united",
-        "狼队": "wolverhampton wanderers",
-    }
-    text = str(name or "").strip()
-    return mapping.get(text, canonical_team(text))
-
-
-def sporttery_team_key(home, away, date):
-    teams = sorted([sporttery_team_alias(home), sporttery_team_alias(away)])
-    return f"{match_date_key(date)}|{teams[0]}|{teams[1]}"
-
-
-def football_data_uk_team_alias(name):
-    mapping = {
-        "Arsenal": "arsenal",
-        "Aston Villa": "aston villa",
-        "Bournemouth": "bournemouth",
-        "Brentford": "brentford",
-        "Brighton": "brighton hove albion",
-        "Burnley": "burnley",
-        "Chelsea": "chelsea",
-        "Crystal Palace": "crystal palace",
-        "Everton": "everton",
-        "Fulham": "fulham",
-        "Leeds": "leeds united",
-        "Liverpool": "liverpool",
-        "Man City": "manchester city",
-        "Man United": "manchester united",
-        "Newcastle": "newcastle united",
-        "Nott'm Forest": "nottingham forest",
-        "Sunderland": "sunderland",
-        "Tottenham": "tottenham hotspur",
-        "West Ham": "west ham united",
-        "Wolves": "wolverhampton wanderers",
-    }
-    return mapping.get(str(name or "").strip(), canonical_team(name))
-
-
-def football_data_uk_key(home, away, date):
-    teams = sorted([football_data_uk_team_alias(home), football_data_uk_team_alias(away)])
-    return f"{match_date_key(date)}|{teams[0]}|{teams[1]}"
-
-
-def football_data_uk_ordered_key(home, away):
-    return f"{football_data_uk_team_alias(home)}|{football_data_uk_team_alias(away)}"
-
-
-def sporttery_datetime(item):
-    date = item.get("matchDate") or item.get("businessDate") or ""
-    time_text = item.get("matchTime") or "00:00"
-    try:
-        return datetime.fromisoformat(f"{date}T{time_text}:00+08:00")
-    except Exception:
-        return None
-
-
-def sporttery_captured_at(pool):
-    date = pool.get("updateDate") or ""
-    time_text = pool.get("updateTime") or ""
-    if date and time_text:
-        try:
-            return datetime.fromisoformat(f"{date}T{time_text}+08:00").astimezone(timezone.utc)
-        except Exception:
-            pass
-    return datetime.now(timezone.utc)
-
-
-def sporttery_price(value):
-    try:
-        if value in {None, ""}:
-            return None
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def flatten_sporttery_matches(data):
-    rows = []
-    value = data.get("value") or {}
-    for group in value.get("matchInfoList") or []:
-        for item in group.get("subMatchList") or []:
-            if item.get("isHide"):
-                continue
-            rows.append(item)
-    return rows
-
-
-def fetch_sporttery_matches():
-    path = "jc/football/getMatchCalculatorV1.qry?poolCode=hhad,had&channel=c"
-    data = fetch_sporttery_with_cache("sporttery_match_calculator", path, ttl=300)
-    if not isinstance(data, dict):
-        return []
-    return flatten_sporttery_matches(data)
-
-
-def sporttery_odds_from_item(item):
-    had = item.get("had") or {}
-    hhad = item.get("hhad") or {}
-    h2h = {
-        "home": sporttery_price(had.get("h")),
-        "draw": sporttery_price(had.get("d")),
-        "away": sporttery_price(had.get("a")),
-    }
-    h2h = {key: value for key, value in h2h.items() if value is not None}
-    spread = {
-        "point": sporttery_price(hhad.get("goalLineValue") or hhad.get("goalLine")),
-        "home": sporttery_price(hhad.get("h")),
-        "draw": sporttery_price(hhad.get("d")),
-        "away": sporttery_price(hhad.get("a")),
-    }
-    if not any(value is not None for key, value in spread.items() if key != "point"):
-        spread = {}
-    updated = ""
-    if had.get("updateDate") and had.get("updateTime"):
-        updated = f"{had.get('updateDate')}T{had.get('updateTime')}+08:00"
-    elif hhad.get("updateDate") and hhad.get("updateTime"):
-        updated = f"{hhad.get('updateDate')}T{hhad.get('updateTime')}+08:00"
-    return {
-        "source": "sporttery",
-        "bookmaker": "Sporttery",
-        "updated": updated,
-        "matchNum": item.get("matchNumStr") or item.get("matchNum"),
-        "league": item.get("leagueAbbName") or item.get("leagueAllName") or "",
-        "h2h": h2h,
-        "spreads": [spread] if spread else [],
-        "raw": item,
-    }
-
-
-def fetch_sporttery_odds(league_key):
-    names = sporttery_league_names(league_key)
-    if not names:
-        return {}
-    odds_by_match = {}
-    for item in fetch_sporttery_matches():
-        league = str(item.get("leagueAbbName") or item.get("leagueAllName") or "")
-        if league not in names:
-            continue
-        home = item.get("homeTeamAllName") or item.get("homeTeamAbbName") or ""
-        away = item.get("awayTeamAllName") or item.get("awayTeamAbbName") or ""
-        date = item.get("matchDate") or item.get("businessDate") or ""
-        if not home or not away or not date:
-            continue
-        odds_by_match[sporttery_team_key(home, away, date)] = sporttery_odds_from_item(item)
-    return odds_by_match
-
-
-def api_football_fixture_key_for_match(match):
-    kickoff = match.kickoff_time
-    if kickoff.tzinfo is None:
-        kickoff = kickoff.replace(tzinfo=timezone.utc)
-    return odds_team_key(
-        match.home_team_name or match.home_team_code,
-        match.away_team_name or match.away_team_code,
-        kickoff.date().isoformat(),
-    )
-
-
-def resolve_api_football_fixture(match):
-    raw = match.raw or {}
-    fixture_id = (
-        raw.get("fixtureId")
-        or raw.get("fixture_id")
-        or ((raw.get("fixture") or {}).get("id") if isinstance(raw.get("fixture"), dict) else None)
-    )
-    if fixture_id:
-        return fixture_id, None
-    fixtures = fetch_api_football_fixtures(match.competition_key)
-    if not fixtures:
-        return None, None
-    item = fixtures.get(api_football_fixture_key_for_match(match))
-    if not item:
-        return None, None
-    fixture = item.get("fixture") or {}
-    return fixture.get("id"), item
-
-
-def resolve_thesportsdb_event(match):
-    raw = match.raw or {}
-    event_id = raw.get("sportsdbEventId") or raw.get("idEvent")
-    if event_id:
-        return event_id, None
-    events = fetch_thesportsdb_events(match.competition_key)
-    if not events:
-        return None, None
-    kickoff = match.kickoff_time
-    if kickoff.tzinfo is None:
-        kickoff = kickoff.replace(tzinfo=timezone.utc)
-    key = odds_team_key(
-        match.home_team_name or match.home_team_code,
-        match.away_team_name or match.away_team_code,
-        kickoff.date().isoformat(),
-    )
-    item = events.get(key)
-    if not item:
-        return None, None
-    return item.get("idEvent"), item
-
-
-def fetch_thesportsdb_event_detail(event_id, data_type):
-    if not event_id:
-        return None
-    endpoint = {
-        "events": f"lookuptimeline.php?id={event_id}",
-        "statistics": f"lookupeventstats.php?id={event_id}",
-        "lineups": f"lookuplineup.php?id={event_id}",
-    }.get(data_type)
-    if not endpoint:
-        return None
-    return fetch_thesportsdb_with_cache(f"thesportsdb_{data_type}_{event_id}", endpoint, ttl=1800)
-
-
-def fetch_api_football_fixture_detail(fixture_id, data_type):
-    if not API_FOOTBALL_KEY or not fixture_id:
-        return None
-    endpoint = {
-        "events": "fixtures/events",
-        "statistics": "fixtures/statistics",
-        "lineups": "fixtures/lineups",
-    }.get(data_type)
-    if not endpoint:
-        return None
-    url = f"{API_FOOTBALL_BASE}/{endpoint}?fixture={fixture_id}"
-    data = fetch_api_football_with_cache(f"api_football_{data_type}_{fixture_id}", url, ttl=1800)
-    return data if isinstance(data, dict) else None
-
-
 def upsert_match_data(session, match_id, data_type, payload, source="api-football"):
     row = session.scalar(
         select(MatchData).where(
@@ -545,776 +144,9 @@ def match_data_has_content(payload):
     return False
 
 
-def should_refresh_match_data(match, existing_row):
-    if not existing_row:
-        return True
-    if match.status == "live":
-        return True
-    if not match_data_has_content(existing_row.payload or {}):
-        return True
-    kickoff = match.kickoff_time
-    if kickoff.tzinfo is None:
-        kickoff = kickoff.replace(tzinfo=timezone.utc)
-    now = datetime.now(timezone.utc)
-    return now <= kickoff <= now + timedelta(hours=SYNC_LINEUP_HOURS)
-
-
-def sync_api_football_match_data(limit=None):
-    if not API_FOOTBALL_KEY:
-        return {"enabled": False, "synced": 0, "reason": "API_FOOTBALL_KEY not configured"}
-    limit = MATCH_DATA_SYNC_LIMIT if limit is None else int(limit)
-    if limit <= 0:
-        return {"enabled": True, "synced": 0, "reason": "MATCH_DATA_SYNC_LIMIT is 0"}
-    now = datetime.now(timezone.utc)
-    start = now - timedelta(days=14)
-    end = now + timedelta(days=7)
-    synced = 0
-    skipped = 0
-    errors = []
-    with session_scope() as session:
-        rows = session.scalars(
-            select(Match)
-            .where(Match.kickoff_time >= start, Match.kickoff_time <= end)
-            .order_by(Match.kickoff_time.desc())
-            .limit(120)
-        ).all()
-        for match in rows:
-            if synced >= limit:
-                break
-            fixture_id, fixture_item = resolve_api_football_fixture(match)
-            if not fixture_id:
-                skipped += 1
-                continue
-            if fixture_item:
-                raw = dict(match.raw or {})
-                raw.update({
-                    "fixtureId": fixture_id,
-                    "fixtureSource": "api-football",
-                    "fixtureSeason": league_odds_config(match.competition_key).get("api_football_season", ""),
-                    "apiFootballFixture": fixture_item,
-                })
-                match.raw = raw
-            existing_by_type = {
-                item.data_type: item
-                for item in session.scalars(
-                    select(MatchData).where(MatchData.match_id == match.id, MatchData.source == "api-football")
-                ).all()
-            }
-            for data_type in ("events", "statistics", "lineups"):
-                if synced >= limit:
-                    break
-                if not should_refresh_match_data(match, existing_by_type.get(data_type)):
-                    continue
-                try:
-                    payload = fetch_api_football_fixture_detail(fixture_id, data_type)
-                    if not payload:
-                        skipped += 1
-                        continue
-                    upsert_match_data(session, match.id, data_type, payload)
-                    synced += 1
-                except Exception as exc:
-                    errors.append(f"{match.source_id}:{data_type}:{exc}")
-    return {"enabled": True, "synced": synced, "skipped": skipped, "errors": errors[:5]}
-
-
-def sync_thesportsdb_match_data(limit=None):
-    limit = THE_SPORTSDB_SYNC_LIMIT if limit is None else int(limit)
-    if not THE_SPORTSDB_KEY:
-        return {"enabled": False, "synced": 0, "reason": "THE_SPORTSDB_KEY not configured"}
-    if limit <= 0:
-        return {"enabled": True, "synced": 0, "reason": "THE_SPORTSDB_SYNC_LIMIT is 0"}
-    now = datetime.now(timezone.utc)
-    start = now - timedelta(days=30)
-    end = now + timedelta(days=7)
-    synced = 0
-    skipped = 0
-    errors = []
-    with session_scope() as session:
-        rows = session.scalars(
-            select(Match)
-            .where(Match.kickoff_time >= start, Match.kickoff_time <= end)
-            .order_by(Match.kickoff_time.desc())
-            .limit(120)
-        ).all()
-        for match in rows:
-            if synced >= limit:
-                break
-            event_id, event_item = resolve_thesportsdb_event(match)
-            if not event_id:
-                skipped += 1
-                continue
-            if event_item:
-                raw = dict(match.raw or {})
-                raw.update({
-                    "sportsdbEventId": event_id,
-                    "fixtureSource": raw.get("fixtureSource") or "thesportsdb",
-                    "sportsdbSeason": thesportsdb_config(match.competition_key).get("season", ""),
-                    "theSportsDBEvent": event_item,
-                })
-                match.raw = raw
-                if not match.venue and event_item.get("strVenue"):
-                    match.venue = event_item.get("strVenue")
-                if event_item.get("intHomeScore") not in {None, ""}:
-                    match.score_home = int(event_item.get("intHomeScore"))
-                if event_item.get("intAwayScore") not in {None, ""}:
-                    match.score_away = int(event_item.get("intAwayScore"))
-            existing_by_type = {
-                item.data_type: item for item in session.scalars(
-                    select(MatchData).where(MatchData.match_id == match.id, MatchData.source == "thesportsdb")
-                ).all()
-            }
-            for data_type in ("events", "statistics", "lineups"):
-                if synced >= limit:
-                    break
-                if not should_refresh_match_data(match, existing_by_type.get(data_type)):
-                    continue
-                try:
-                    payload = fetch_thesportsdb_event_detail(event_id, data_type)
-                    if not payload:
-                        skipped += 1
-                        continue
-                    upsert_match_data(session, match.id, data_type, payload, source="thesportsdb")
-                    synced += 1
-                except Exception as exc:
-                    errors.append(f"{match.source_id}:{data_type}:{exc}")
-    return {"enabled": True, "synced": synced, "skipped": skipped, "errors": errors[:5]}
-
-
-def add_sporttery_snapshots(session, match, odds):
-    existing = session.scalars(
-        select(OddsSnapshot).where(
-            OddsSnapshot.match_id == match.id,
-            OddsSnapshot.competition_key == match.competition_key,
-            OddsSnapshot.source == "sporttery",
-        )
-    ).all()
-    existing_set = {
-        (row.market, row.selection, row.point, round(float(row.price), 4))
-        for row in existing
-    }
-    inserted = 0
-    raw = odds.get("raw") or {}
-    had = raw.get("had") or {}
-    hhad = raw.get("hhad") or {}
-    for selection, price in (odds.get("h2h") or {}).items():
-        key = ("h2h", selection, None, round(float(price), 4))
-        if key in existing_set:
-            continue
-        session.add(OddsSnapshot(
-            match_id=match.id,
-            competition_key=match.competition_key,
-            source="sporttery",
-            bookmaker="Sporttery",
-            market="h2h",
-            selection=selection,
-            price=float(price),
-            captured_at=sporttery_captured_at(had),
-            raw=odds,
-        ))
-        inserted += 1
-    for spread in odds.get("spreads") or []:
-        point = spread.get("point")
-        for selection in ("home", "draw", "away"):
-            price = spread.get(selection)
-            if price is None:
-                continue
-            key = ("spread", selection, point, round(float(price), 4))
-            if key in existing_set:
-                continue
-            session.add(OddsSnapshot(
-                match_id=match.id,
-                competition_key=match.competition_key,
-                source="sporttery",
-                bookmaker="Sporttery",
-                market="spread",
-                selection=selection,
-                price=float(price),
-                point=point,
-                captured_at=sporttery_captured_at(hhad),
-                raw=odds,
-            ))
-            inserted += 1
-    return inserted
-
-
-def sync_sporttery_match_data(limit=None):
-    if not SPORTTERY_ENABLED:
-        return {"enabled": False, "synced": 0, "reason": "SPORTTERY_ENABLED is false"}
-    limit = SPORTTERY_SYNC_LIMIT if limit is None else int(limit)
-    if limit <= 0:
-        return {"enabled": True, "synced": 0, "reason": "SPORTTERY_SYNC_LIMIT is 0"}
-    items = fetch_sporttery_matches()
-    if not items:
-        return {"enabled": True, "synced": 0, "skipped": 0, "reason": "no public Sporttery matches returned"}
-
-    public_by_key = {}
-    for item in items:
-        home = item.get("homeTeamAllName") or item.get("homeTeamAbbName") or ""
-        away = item.get("awayTeamAllName") or item.get("awayTeamAbbName") or ""
-        date = item.get("matchDate") or item.get("businessDate") or ""
-        if home and away and date:
-            public_by_key[sporttery_team_key(home, away, date)] = item
-
-    now = datetime.now(timezone.utc)
-    start = now - timedelta(days=7)
-    end = now + timedelta(days=14)
-    synced = 0
-    snapshots = 0
-    skipped = 0
-    with session_scope() as session:
-        rows = session.scalars(
-            select(Match)
-            .where(Match.kickoff_time >= start, Match.kickoff_time <= end)
-            .order_by(Match.kickoff_time.asc())
-            .limit(240)
-        ).all()
-        for match in rows:
-            if synced >= limit:
-                break
-            kickoff = match.kickoff_time
-            if kickoff.tzinfo is None:
-                kickoff = kickoff.replace(tzinfo=timezone.utc)
-            key = sporttery_team_key(
-                match.home_team_name or match.home_team_code,
-                match.away_team_name or match.away_team_code,
-                kickoff.astimezone(timezone(timedelta(hours=8))).date().isoformat(),
-            )
-            item = public_by_key.get(key)
-            if not item:
-                skipped += 1
-                continue
-            odds = sporttery_odds_from_item(item)
-            raw = dict(match.raw or {})
-            raw.update({
-                "sportteryMatchId": item.get("matchId"),
-                "sportteryMatchNum": item.get("matchNumStr") or item.get("matchNum"),
-                "sportteryLeague": item.get("leagueAbbName") or item.get("leagueAllName") or "",
-                "sportteryFixture": item,
-            })
-            match.raw = raw
-            kickoff_cst = sporttery_datetime(item)
-            if kickoff_cst:
-                match.kickoff_time = kickoff_cst.astimezone(timezone.utc)
-            if item.get("homeTeamAbbName") and not match.home_team_name:
-                match.home_team_name = item.get("homeTeamAbbName")
-            if item.get("awayTeamAbbName") and not match.away_team_name:
-                match.away_team_name = item.get("awayTeamAbbName")
-            upsert_match_data(session, match.id, "official_market", {"provider": "Sporttery", "fixture": item, "odds": odds}, source="sporttery")
-            snapshots += add_sporttery_snapshots(session, match, odds)
-            synced += 1
-    return {"enabled": True, "synced": synced, "snapshots": snapshots, "skipped": skipped}
-
-
-def fetch_football_data_uk_rows(league_key):
-    if not FOOTBALL_DATA_UK_ENABLED:
-        return []
-    if league_key != "epl":
-        return []
-    now = time.time()
-    cache_key = f"football_data_uk_{league_key}"
-    if cache_key in CACHE and now - CACHE[cache_key]["ts"] < 3600:
-        return CACHE[cache_key]["data"]
-    try:
-        resp = requests.get(FOOTBALL_DATA_UK_EPL_CSV, timeout=20)
-        if not resp.ok:
-            print(f"[football-data.co.uk] {resp.status_code}: {resp.text[:200]}")
-            return []
-        text = resp.content.decode("utf-8-sig", errors="replace")
-        rows = [row for row in csv.DictReader(io.StringIO(text)) if row.get("Date") and row.get("HomeTeam") and row.get("AwayTeam")]
-        CACHE[cache_key] = {"data": rows, "ts": now}
-        return rows
-    except Exception as exc:
-        print(f"[football-data.co.uk Error] {exc}")
-        return []
-
-
-def parse_football_data_uk_date(value):
-    try:
-        return datetime.strptime(str(value or "").strip(), "%d/%m/%Y").date().isoformat()
-    except Exception:
-        return ""
-
-
-def int_or_none(value):
-    try:
-        if value in {None, ""}:
-            return None
-        return int(float(value))
-    except (TypeError, ValueError):
-        return None
-
-
-def football_data_uk_payload(row):
-    stats = {
-        "full_time": {
-            "home_goals": int_or_none(row.get("FTHG")),
-            "away_goals": int_or_none(row.get("FTAG")),
-            "result": row.get("FTR") or "",
-        },
-        "half_time": {
-            "home_goals": int_or_none(row.get("HTHG")),
-            "away_goals": int_or_none(row.get("HTAG")),
-            "result": row.get("HTR") or "",
-        },
-        "match_stats": {
-            "home_shots": int_or_none(row.get("HS")),
-            "away_shots": int_or_none(row.get("AS")),
-            "home_shots_on_target": int_or_none(row.get("HST")),
-            "away_shots_on_target": int_or_none(row.get("AST")),
-            "home_fouls": int_or_none(row.get("HF")),
-            "away_fouls": int_or_none(row.get("AF")),
-            "home_corners": int_or_none(row.get("HC")),
-            "away_corners": int_or_none(row.get("AC")),
-            "home_yellow_cards": int_or_none(row.get("HY")),
-            "away_yellow_cards": int_or_none(row.get("AY")),
-            "home_red_cards": int_or_none(row.get("HR")),
-            "away_red_cards": int_or_none(row.get("AR")),
-        },
-        "referee": row.get("Referee") or "",
-    }
-    odds = {
-        "h2h": {
-            "home": decimal_or_none(row.get("AvgCH") or row.get("AvgH")),
-            "draw": decimal_or_none(row.get("AvgCD") or row.get("AvgD")),
-            "away": decimal_or_none(row.get("AvgCA") or row.get("AvgA")),
-        },
-        "totals": [
-            {"name": "over", "point": 2.5, "price": decimal_or_none(row.get("AvgC>2.5") or row.get("Avg>2.5"))},
-            {"name": "under", "point": 2.5, "price": decimal_or_none(row.get("AvgC<2.5") or row.get("Avg<2.5"))},
-        ],
-        "spreads": [{
-            "point": decimal_or_none(row.get("AHCh") or row.get("AHh")),
-            "home": decimal_or_none(row.get("AvgCAHH") or row.get("AvgAHH")),
-            "away": decimal_or_none(row.get("AvgCAHA") or row.get("AvgAHA")),
-        }],
-    }
-    odds["h2h"] = {key: value for key, value in odds["h2h"].items() if value is not None}
-    odds["totals"] = [item for item in odds["totals"] if item["price"] is not None]
-    odds["spreads"] = [
-        item for item in odds["spreads"]
-        if item["point"] is not None and (item["home"] is not None or item["away"] is not None)
-    ]
-    return {
-        "provider": "football-data.co.uk",
-        "competition": row.get("Div") or "E0",
-        "date": parse_football_data_uk_date(row.get("Date")),
-        "time": row.get("Time") or "",
-        "homeTeam": row.get("HomeTeam") or "",
-        "awayTeam": row.get("AwayTeam") or "",
-        "stats": stats,
-        "odds": odds,
-        "raw": row,
-    }
-
-
-def add_football_data_uk_snapshots(session, match, payload):
-    odds = payload.get("odds") or {}
-    existing = session.scalars(
-        select(OddsSnapshot).where(
-            OddsSnapshot.match_id == match.id,
-            OddsSnapshot.competition_key == match.competition_key,
-            OddsSnapshot.source == "football-data.co.uk",
-        )
-    ).all()
-    existing_set = {
-        (row.market, row.selection, row.point, round(float(row.price), 4))
-        for row in existing
-    }
-    inserted = 0
-    captured_at = datetime.now(timezone.utc)
-    for selection, price in (odds.get("h2h") or {}).items():
-        key = ("h2h", selection, None, round(float(price), 4))
-        if key in existing_set:
-            continue
-        session.add(OddsSnapshot(
-            match_id=match.id,
-            competition_key=match.competition_key,
-            source="football-data.co.uk",
-            bookmaker="Average closing",
-            market="h2h",
-            selection=selection,
-            price=float(price),
-            captured_at=captured_at,
-            raw=payload,
-        ))
-        inserted += 1
-    for item in odds.get("totals") or []:
-        price = item.get("price")
-        if price is None:
-            continue
-        key = ("totals", str(item.get("name") or ""), item.get("point"), round(float(price), 4))
-        if key in existing_set:
-            continue
-        session.add(OddsSnapshot(
-            match_id=match.id,
-            competition_key=match.competition_key,
-            source="football-data.co.uk",
-            bookmaker="Average closing",
-            market="totals",
-            selection=str(item.get("name") or ""),
-            point=item.get("point"),
-            price=float(price),
-            captured_at=captured_at,
-            raw=payload,
-        ))
-        inserted += 1
-    for item in odds.get("spreads") or []:
-        point = item.get("point")
-        for selection in ("home", "away"):
-            price = item.get(selection)
-            if price is None:
-                continue
-            key = ("spread", selection, point, round(float(price), 4))
-            if key in existing_set:
-                continue
-            session.add(OddsSnapshot(
-                match_id=match.id,
-                competition_key=match.competition_key,
-                source="football-data.co.uk",
-                bookmaker="Average closing",
-                market="spread",
-                selection=selection,
-                point=point,
-                price=float(price),
-                captured_at=captured_at,
-                raw=payload,
-            ))
-            inserted += 1
-    return inserted
-
-
-def sync_football_data_uk_match_data(limit=None):
-    if not FOOTBALL_DATA_UK_ENABLED:
-        return {"enabled": False, "synced": 0, "reason": "FOOTBALL_DATA_UK_ENABLED is false"}
-    limit = FOOTBALL_DATA_UK_SYNC_LIMIT if limit is None else int(limit)
-    if limit <= 0:
-        return {"enabled": True, "synced": 0, "reason": "FOOTBALL_DATA_UK_SYNC_LIMIT is 0"}
-    rows = fetch_football_data_uk_rows("epl")
-    if not rows:
-        return {"enabled": True, "synced": 0, "skipped": 0, "reason": "no football-data.co.uk rows returned"}
-
-    row_by_key = {}
-    row_by_ordered_key = {}
-    for row in rows:
-        date = parse_football_data_uk_date(row.get("Date"))
-        if not date:
-            continue
-        row_by_key[football_data_uk_key(row.get("HomeTeam"), row.get("AwayTeam"), date)] = row
-        ordered_key = football_data_uk_ordered_key(row.get("HomeTeam"), row.get("AwayTeam"))
-        row_by_ordered_key.setdefault(ordered_key, []).append(row)
-
-    synced = 0
-    snapshots = 0
-    skipped = 0
-    with session_scope() as session:
-        matches = session.scalars(
-            select(Match)
-            .where(Match.competition_key == "epl")
-            .order_by(Match.kickoff_time.desc())
-            .limit(420)
-        ).all()
-        for match in matches:
-            if synced >= limit:
-                break
-            kickoff = match.kickoff_time
-            if kickoff.tzinfo is None:
-                kickoff = kickoff.replace(tzinfo=timezone.utc)
-            match_date = kickoff.astimezone(timezone(timedelta(hours=8))).date().isoformat()
-            key = football_data_uk_key(
-                match.home_team_name or match.home_team_code,
-                match.away_team_name or match.away_team_code,
-                match_date,
-            )
-            row = row_by_key.get(key)
-            if not row:
-                ordered_key = football_data_uk_ordered_key(
-                    match.home_team_name or match.home_team_code,
-                    match.away_team_name or match.away_team_code,
-                )
-                candidates = row_by_ordered_key.get(ordered_key) or []
-                nearest = None
-                nearest_days = 999
-                for candidate in candidates:
-                    candidate_date = parse_football_data_uk_date(candidate.get("Date"))
-                    if not candidate_date:
-                        continue
-                    days = abs((datetime.fromisoformat(match_date) - datetime.fromisoformat(candidate_date)).days)
-                    if days < nearest_days:
-                        nearest = candidate
-                        nearest_days = days
-                if nearest is not None and nearest_days <= 10:
-                    row = nearest
-            if not row:
-                skipped += 1
-                continue
-            payload = football_data_uk_payload(row)
-            stats = payload.get("stats") or {}
-            ft = stats.get("full_time") or {}
-            if ft.get("home_goals") is not None:
-                match.score_home = ft.get("home_goals")
-            if ft.get("away_goals") is not None:
-                match.score_away = ft.get("away_goals")
-            if match.score_home is not None and match.score_away is not None:
-                match.status = "finished"
-            raw = dict(match.raw or {})
-            raw.update({"footballDataUk": payload})
-            match.raw = raw
-            upsert_match_data(session, match.id, "historical_stats", payload, source="football-data.co.uk")
-            snapshots += add_football_data_uk_snapshots(session, match, payload)
-            synced += 1
-    return {"enabled": True, "synced": synced, "snapshots": snapshots, "skipped": skipped}
-
-
 @app.route("/")
 def index():
     return send_from_directory("docs", "index.html")
-
-
-def user_payload(user):
-    subscription = get_subscription_payload(user.id) if user and getattr(user, "id", None) else {"plan": "free", "status": "active"}
-    return {
-        "id": user.id,
-        "email": user.email,
-        "displayName": user.display_name,
-        "role": user.role,
-        "status": user.status,
-        "subscription": subscription,
-    }
-
-
-def get_subscription_payload(user_id):
-    with session_scope() as session:
-        sub = session.scalar(select(Subscription).where(Subscription.user_id == user_id))
-        if not sub:
-            sub = Subscription(user_id=user_id, plan="free", status="active")
-            session.add(sub)
-            session.flush()
-        return {
-            "plan": sub.plan,
-            "status": sub.status,
-            "startedAt": sub.started_at.isoformat() if sub.started_at else "",
-            "expiresAt": sub.expires_at.isoformat() if sub.expires_at else "",
-        }
-
-
-def subscription_payload(sub):
-    return {
-        "plan": sub.plan,
-        "status": sub.status,
-        "startedAt": sub.started_at.isoformat() if sub.started_at else "",
-        "expiresAt": sub.expires_at.isoformat() if sub.expires_at else "",
-    }
-
-
-def current_plan():
-    user = current_user_from_request()
-    if not user:
-        return "free"
-    sub = get_subscription_payload(user.id)
-    return sub.get("plan", "free") if sub.get("status") == "active" else "free"
-
-
-def is_admin_request():
-    user = current_user_from_request()
-    if user and user.role == "admin":
-        return True
-    token = request.headers.get("X-Admin-Token", "")
-    return bool(ADMIN_TOKEN and token == ADMIN_TOKEN)
-
-
-def issue_token(user):
-    now = datetime.now(timezone.utc)
-    payload = {
-        "sub": str(user.id),
-        "email": user.email,
-        "role": user.role,
-        "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(hours=JWT_TTL_HOURS)).timestamp()),
-    }
-    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
-
-
-def current_user_from_request():
-    header = request.headers.get("Authorization", "")
-    if not header.startswith("Bearer "):
-        return None
-    token = header.removeprefix("Bearer ").strip()
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        user_id = int(payload.get("sub", 0))
-    except Exception:
-        return None
-    with session_scope() as session:
-        return session.get(User, user_id)
-
-
-@app.route("/api/auth/register", methods=["POST"])
-def auth_register():
-    data = request.get_json(silent=True) or {}
-    email = str(data.get("email", "")).strip().lower()
-    password = str(data.get("password", ""))
-    display_name = str(data.get("displayName") or data.get("display_name") or "").strip()
-    if not email or "@" not in email:
-        return jsonify({"error": "Invalid email"}), 400
-    if len(password) < 8:
-        return jsonify({"error": "Password must be at least 8 characters"}), 400
-
-    with session_scope() as session:
-        existing = session.scalar(select(User).where(User.email == email))
-        if existing:
-            return jsonify({"error": "Email already registered"}), 409
-        user = User(email=email, password_hash=password_hash(password), display_name=display_name or email.split("@")[0])
-        session.add(user)
-        session.flush()
-        session.add(UserPreference(user_id=user.id))
-        session.add(Subscription(user_id=user.id, plan="free", status="active"))
-        token = issue_token(user)
-        payload = {
-            "id": user.id,
-            "email": user.email,
-            "displayName": user.display_name,
-            "role": user.role,
-            "status": user.status,
-            "subscription": {"plan": "free", "status": "active", "startedAt": datetime.now(timezone.utc).isoformat(), "expiresAt": ""},
-        }
-        return jsonify({"token": token, "user": payload}), 201
-
-
-@app.route("/api/auth/login", methods=["POST"])
-def auth_login():
-    data = request.get_json(silent=True) or {}
-    email = str(data.get("email", "")).strip().lower()
-    password = str(data.get("password", ""))
-    with session_scope() as session:
-        user = session.scalar(select(User).where(User.email == email))
-        if not user or not user.verify_password(password):
-            return jsonify({"error": "Invalid email or password"}), 401
-        if user.status != "active":
-            return jsonify({"error": "User is not active"}), 403
-        user.last_login_at = datetime.now(timezone.utc)
-        sub = session.scalar(select(Subscription).where(Subscription.user_id == user.id))
-        if not sub:
-            sub = Subscription(user_id=user.id, plan="free", status="active")
-            session.add(sub)
-            session.flush()
-        token = issue_token(user)
-        payload = {
-            "id": user.id,
-            "email": user.email,
-            "displayName": user.display_name,
-            "role": user.role,
-            "status": user.status,
-            "subscription": subscription_payload(sub),
-        }
-        return jsonify({"token": token, "user": payload})
-
-
-@app.route("/api/auth/me")
-def auth_me():
-    user = current_user_from_request()
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
-    return jsonify({"user": user_payload(user)})
-
-
-@app.route("/api/account/subscription")
-def account_subscription():
-    user = current_user_from_request()
-    if not user:
-        return jsonify({"subscription": {"plan": "free", "status": "active"}})
-    return jsonify({"subscription": get_subscription_payload(user.id)})
-
-
-def normalize_profile_items(value, limit=80):
-    if not isinstance(value, list):
-        return []
-    result = []
-    seen = set()
-    for item in value:
-        if not isinstance(item, dict):
-            continue
-        league = str(item.get("league") or "").strip()
-        match_id = str(item.get("id") or "").strip()
-        key = f"{league}:{match_id}"
-        if not league or not match_id or key in seen:
-            continue
-        seen.add(key)
-        result.append({
-            "league": league,
-            "id": match_id,
-            "title": str(item.get("title") or "")[:160],
-            "sub": str(item.get("sub") or "")[:160],
-            "savedAt": str(item.get("savedAt") or item.get("viewedAt") or ""),
-            "viewedAt": str(item.get("viewedAt") or item.get("savedAt") or ""),
-        })
-        if len(result) >= limit:
-            break
-    return result
-
-
-def preference_profile_payload(pref):
-    raw = pref.watchlist if pref and isinstance(pref.watchlist, (dict, list)) else {}
-    if isinstance(raw, list):
-        raw = {"favorites": raw, "history": []}
-    return {
-        "favorites": normalize_profile_items(raw.get("favorites"), limit=120),
-        "history": normalize_profile_items(raw.get("history"), limit=120),
-    }
-
-
-@app.route("/api/account/profile-data", methods=["GET", "POST"])
-def account_profile_data():
-    user = current_user_from_request()
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
-    with session_scope() as session:
-        pref = session.scalar(select(UserPreference).where(UserPreference.user_id == user.id))
-        if not pref:
-            pref = UserPreference(user_id=user.id)
-            session.add(pref)
-            session.flush()
-        if request.method == "POST":
-            data = request.get_json(silent=True) or {}
-            current = preference_profile_payload(pref)
-            payload = {
-                "favorites": normalize_profile_items(data.get("favorites", current["favorites"]), limit=120),
-                "history": normalize_profile_items(data.get("history", current["history"]), limit=120),
-            }
-            pref.watchlist = payload
-            pref.updated_at = datetime.now(timezone.utc)
-            session.flush()
-        return jsonify({"profile": preference_profile_payload(pref)})
-
-
-@app.route("/api/admin/users/<int:user_id>/subscription", methods=["POST"])
-def admin_set_subscription(user_id):
-    if not is_admin_request():
-        return jsonify({"error": "Forbidden"}), 403
-    data = request.get_json(silent=True) or {}
-    plan = str(data.get("plan") or "free").lower()
-    status = str(data.get("status") or "active").lower()
-    if plan not in {"free", "pro"}:
-        return jsonify({"error": "plan must be free or pro"}), 400
-    if status not in {"active", "paused", "cancelled"}:
-        return jsonify({"error": "invalid status"}), 400
-    with session_scope() as session:
-        user = session.get(User, user_id)
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-        sub = session.scalar(select(Subscription).where(Subscription.user_id == user_id))
-        if not sub:
-            sub = Subscription(user_id=user_id)
-            session.add(sub)
-        sub.plan = plan
-        sub.status = status
-        sub.updated_at = datetime.now(timezone.utc)
-        session.flush()
-        return jsonify({"userId": user_id, "subscription": {
-            "plan": sub.plan,
-            "status": sub.status,
-            "startedAt": sub.started_at.isoformat() if sub.started_at else "",
-            "expiresAt": sub.expires_at.isoformat() if sub.expires_at else "",
-        }})
 
 
 def map_status(status):
@@ -1325,16 +157,6 @@ def map_status(status):
         "POSTPONED": "postponed", "SUSPENDED": "postponed", "CANCELLED": "cancelled",
     }
     return m.get(status, "upcoming")
-
-
-def map_api_football_status(short_status):
-    m = {
-        "TBD": "upcoming", "NS": "upcoming",
-        "1H": "live", "HT": "ht", "2H": "live", "ET": "live", "BT": "live", "P": "live",
-        "FT": "finished", "AET": "finished", "PEN": "finished",
-        "PST": "postponed", "CANC": "cancelled", "ABD": "cancelled", "AWD": "finished", "WO": "finished",
-    }
-    return m.get(str(short_status or "").upper(), "")
 
 
 def cst_now():
@@ -1748,61 +570,6 @@ def fetch_the_odds_api_odds(league_key):
                             "price": price,
                         })
         odds_by_match[key] = match_odds
-    return odds_by_match
-
-
-def fetch_api_football_odds(league_key):
-    cfg = league_odds_config(league_key)
-    league = cfg.get("api_football_league")
-    season = cfg.get("api_football_season")
-    if not API_FOOTBALL_KEY or not league or not season:
-        return {}
-    url = f"{API_FOOTBALL_BASE}/odds?league={league}&season={season}"
-    data = fetch_api_football_with_cache(f"api_football_odds_{league}_{season}", url, ttl=600)
-    if not isinstance(data, dict):
-        return {}
-
-    odds_by_match = {}
-    for item in data.get("response", []):
-        fixture = item.get("fixture") or {}
-        teams = item.get("teams") or {}
-        home = (teams.get("home") or {}).get("name", "")
-        away = (teams.get("away") or {}).get("name", "")
-        date = match_date_key(fixture.get("date", ""))
-        if not home or not away or not date:
-            continue
-        bookmaker = (item.get("bookmakers") or [{}])[0]
-        match_odds = {
-            "source": "api-football",
-            "bookmaker": bookmaker.get("name", ""),
-            "updated": item.get("update", ""),
-            "h2h": {},
-            "totals": [],
-        }
-        for bet in bookmaker.get("bets", []):
-            bet_name = str(bet.get("name", "")).lower()
-            if bet_name in {"match winner", "1x2"}:
-                for value in bet.get("values", []):
-                    label = str(value.get("value", "")).lower()
-                    price = decimal_or_none(value.get("odd"))
-                    if label in {"home", "1"}:
-                        match_odds["h2h"]["home"] = price
-                    elif label in {"draw", "x"}:
-                        match_odds["h2h"]["draw"] = price
-                    elif label in {"away", "2"}:
-                        match_odds["h2h"]["away"] = price
-            elif "goals over/under" in bet_name or "over/under" in bet_name:
-                for value in bet.get("values", []):
-                    raw = str(value.get("value", ""))
-                    price = decimal_or_none(value.get("odd"))
-                    if price is not None:
-                        parts = raw.split()
-                        match_odds["totals"].append({
-                            "name": parts[0] if parts else raw,
-                            "point": decimal_or_none(parts[-1] if parts else None),
-                            "price": price,
-                        })
-        odds_by_match[odds_team_key(home, away, date)] = match_odds
     return odds_by_match
 
 
@@ -2560,12 +1327,95 @@ def match_data_payload(rows):
     return result
 
 
+def match_row_frontend_payload(row):
+    """Build the match shape used by the detail panel without reloading all fixtures."""
+    kickoff = row.kickoff_time
+    if kickoff.tzinfo is None:
+        kickoff = kickoff.replace(tzinfo=timezone.utc)
+    cst = kickoff.astimezone(timezone(timedelta(hours=8)))
+    league = "世界杯" if row.competition_key == "worldcup" else "英超"
+    competition = "FIFA World Cup 2026" if row.competition_key == "worldcup" else "Premier League"
+    return {
+        "id": row.source_id,
+        "league": league,
+        "competition": competition,
+        "stage": row.stage,
+        "group": row.group_name,
+        "date": cst.strftime("%Y-%m-%d"),
+        "time": cst.strftime("%H:%M"),
+        "matchday": row.matchday,
+        "home": row.home_team_code or row.home_team_name,
+        "homeName": row.home_team_name,
+        "homeFull": row.home_team_name,
+        "away": row.away_team_code or row.away_team_name,
+        "awayName": row.away_team_name,
+        "awayFull": row.away_team_name,
+        "status": row.status or match_status_from_kickoff(kickoff),
+        "scoreH": row.score_home,
+        "scoreW": row.score_away,
+        "venue": row.venue,
+        "city": row.city,
+        "oddsAvailable": False,
+        "pick": {"type": "pending", "label": "AI分析待接入", "conf": 0, "reason": "等待 AI 复评"},
+    }
+
+
+def db_match_detail_payload(league_key, source_id, plan):
+    """Fast path for match details: one DB lookup instead of rebuilding /api/matches."""
+    with session_scope() as session:
+        row = session.scalar(
+            select(Match).where(Match.competition_key == league_key, Match.source_id == source_id)
+        )
+        if not row:
+            return None
+
+        snapshot_rows = session.scalars(
+            select(OddsSnapshot)
+            .where(OddsSnapshot.match_id == row.id)
+            .order_by(OddsSnapshot.captured_at.desc())
+            .limit(120)
+        ).all()
+        rich_rows = session.scalars(
+            select(MatchData)
+            .where(MatchData.match_id == row.id)
+            .order_by(MatchData.fetched_at.desc())
+        ).all()
+        analyses = [
+            analysis_payload(item, plan)
+            for item in session.scalars(
+                select(AnalysisResult)
+                .where(AnalysisResult.match_id == row.id)
+                .order_by(AnalysisResult.created_at.desc())
+                .limit(10)
+            ).all()
+        ]
+
+        return {
+            "match": match_row_frontend_payload(row),
+            "league": league_key,
+            "dbMatchId": row.id,
+            "subscription": {"plan": plan},
+            "oddsSources": current_odds_sources(snapshot_rows),
+            "recentOddsBatch": recent_snapshot_batch(snapshot_rows),
+            "oddsSnapshots": [odds_snapshot_payload(item) for item in snapshot_rows],
+            "matchData": match_data_payload(rich_rows),
+            "analysisResults": analyses,
+            "updated": cst_now().isoformat(),
+        }
+
+
 @app.route("/api/matches/<league_key>/<path:source_id>")
 def match_detail(league_key, source_id):
     """Single match detail for the frontend detail panel."""
     if league_key not in {"worldcup", "epl"}:
         return jsonify({"error": "Unsupported league"}), 404
     plan = current_plan()
+    try:
+        db_payload = db_match_detail_payload(league_key, source_id, plan)
+        if db_payload:
+            return jsonify(db_payload)
+    except Exception as exc:
+        print(f"[DB] fast match detail failed: {exc}")
 
     payload, status = load_combined_matches_payload()
     if status != 200:
