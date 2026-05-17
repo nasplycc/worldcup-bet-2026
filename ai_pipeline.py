@@ -9,7 +9,7 @@ from typing import Any
 import requests
 from sqlalchemy import select
 
-from db import AnalysisJob, AnalysisResult, Match, OddsSnapshot, session_scope
+from db import AnalysisJob, AnalysisResult, Match, MatchData, OddsSnapshot, session_scope
 
 
 PROMPT_VERSION = os.environ.get("AI_ANALYSIS_PROMPT_VERSION", "v1")
@@ -21,6 +21,7 @@ AI_LOOKAHEAD_HOURS = int(os.environ.get("AI_ANALYSIS_LOOKAHEAD_HOURS", "168"))
 AI_MAX_JOBS_PER_SYNC = int(os.environ.get("AI_ANALYSIS_MAX_JOBS_PER_SYNC", "3"))
 AI_DAILY_JOB_LIMIT = int(os.environ.get("AI_ANALYSIS_DAILY_JOB_LIMIT", "20"))
 AI_MAX_RETRIES = int(os.environ.get("AI_ANALYSIS_MAX_RETRIES", "2"))
+AI_CONTEXT_MAX_CHARS_PER_TYPE = int(os.environ.get("AI_CONTEXT_MAX_CHARS_PER_TYPE", "3500"))
 
 
 def utcnow() -> datetime:
@@ -61,7 +62,36 @@ def latest_odds_for_match(session, match_id: int) -> list[dict[str, Any]]:
     return items
 
 
-def match_payload(match: Match, odds: list[dict[str, Any]]) -> dict[str, Any]:
+def compact_value(value: Any, max_chars: int = AI_CONTEXT_MAX_CHARS_PER_TYPE) -> Any:
+    text = stable_json(value)
+    if len(text) <= max_chars:
+        return value
+    return {
+        "truncated": True,
+        "max_chars": max_chars,
+        "json_excerpt": text[:max_chars],
+    }
+
+
+def latest_match_data_for_match(session, match_id: int) -> dict[str, Any]:
+    rows = session.scalars(
+        select(MatchData)
+        .where(MatchData.match_id == match_id)
+        .order_by(MatchData.fetched_at.desc())
+    ).all()
+    result: dict[str, Any] = {}
+    for row in rows:
+        if row.data_type in result:
+            continue
+        result[row.data_type] = {
+            "source": row.source,
+            "fetched_at": row.fetched_at.isoformat() if row.fetched_at else "",
+            "payload": compact_value(row.payload or {}),
+        }
+    return result
+
+
+def match_payload(match: Match, odds: list[dict[str, Any]], match_data: dict[str, Any] | None = None) -> dict[str, Any]:
     return {
         "prompt_version": PROMPT_VERSION,
         "competition": match.competition_key,
@@ -83,6 +113,7 @@ def match_payload(match: Match, odds: list[dict[str, Any]]) -> dict[str, Any]:
         "venue": match.venue,
         "city": match.city,
         "latest_odds": odds,
+        "context_data": match_data or {},
     }
 
 
@@ -123,7 +154,7 @@ def enqueue_analysis_jobs(limit: int | None = None) -> dict[str, Any]:
             if not odds:
                 skipped += 1
                 continue
-            payload = match_payload(match, odds)
+            payload = match_payload(match, odds, latest_match_data_for_match(session, match.id))
             prompt_hash = prompt_hash_for(payload)
             existing = session.scalar(select(AnalysisJob).where(AnalysisJob.prompt_hash == prompt_hash))
             if existing:
@@ -156,6 +187,30 @@ def system_prompt() -> str:
 def user_prompt(payload: dict[str, Any]) -> str:
     return (
         "请分析这场比赛，并返回 JSON：\n"
+        "{\n"
+        '  "summary": "一句话简版结论",\n'
+        '  "confidence": 0.0,\n'
+        '  "best_pick": {"market": "...", "selection": "...", "price": 0.0, "reason": "..."},\n'
+        '  "risk": {"level": "low|medium|high", "main": "...", "avoid_if": "..."},\n'
+        '  "pro": {"full_reasoning": "...", "odds_read": "...", "alternatives": [], "watchlist": []}\n'
+        "}\n\n"
+        f"输入数据：{stable_json(payload)}"
+    )
+
+
+def system_prompt() -> str:
+    return (
+        "你是 AI智球 的足球赛事分析引擎。只能基于输入数据做审慎分析，输出必须是 JSON，不要输出 Markdown。"
+        "不要承诺收益，不要使用绝对化措辞。重点评估比赛基本面、指数含义、官方公开参考、赛况事件、技术统计和阵容信息。"
+        "如果某类数据缺失，要把缺失本身写入风险判断，不能编造。"
+        "同时输出适合免费用户展示的简版结论，以及付费用户展示的完整解释。"
+    )
+
+
+def user_prompt(payload: dict[str, Any]) -> str:
+    return (
+        "请分析这场比赛，并返回 JSON。输入数据中的 context_data 可能包含："
+        "official_market=官方公开参考，events=赛况事件，statistics=技术统计，lineups=阵容。\n"
         "{\n"
         '  "summary": "一句话简版结论",\n'
         '  "confidence": 0.0,\n'

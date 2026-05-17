@@ -274,7 +274,7 @@ const marketMap={h2h:'胜平负',totals:'大小球','1x2':'胜平负','1X2':'胜
 const marketMapEn={h2h:'H2H',totals:'O/U','1x2':'1X2','1X2':'1X2','Match Winner':'Match Winner',asian_handicap:'Asian Handicap',double_chance:'Double Chance',btts:'Both Teams to Score'};
 const selectionMap={home:'主胜',draw:'平局',away:'客胜',over:'大球',under:'小球',yes:'是',no:'否','1':'主胜','X':'平局','2':'客胜'};
 const selectionMapEn={home:'Home',draw:'Draw',away:'Away',over:'Over',under:'Under',yes:'Yes',no:'No','1':'Home','X':'Draw','2':'Away'};
-const sourceMap={'the-odds-api':'The Odds API','api-football':'API-Football',sporttery:'中国竞彩网',Sporttery:'中国竞彩网','football-data.org':'football-data.org',database:'数据库',openfootball:'OpenFootball',pinnacle:'平博',Pinnacle:'平博'};
+const sourceMap={'the-odds-api':'The Odds API','api-football':'API-Football',sporttery:'中国竞彩网',Sporttery:'中国竞彩网','football-data.org':'football-data.org','football-data.co.uk':'football-data.co.uk',database:'数据库',openfootball:'OpenFootball',pinnacle:'平博',Pinnacle:'平博'};
 function localizeMarket(v){const k=(v||'').toLowerCase();return currentLang==='en'?(marketMapEn[k]||marketMap[k]||v):(marketMap[k]||v)}
 function localizeSelection(v){const k=(v||'').toLowerCase();return currentLang==='en'?(selectionMapEn[k]||selectionMap[k]||v):(selectionMap[k]||v)}
 function localizeBookmaker(v){const src=sourceMap[v];if(src)return src;const k=(v||'').toLowerCase();return sourceMap[k]||v}
@@ -383,6 +383,21 @@ function statisticsHtml(data){
   const keys=[...new Set([...leftStats.keys(),...rightStats.keys()])].slice(0,18);
   return `<table class="stats-table"><thead><tr><th>${esc((left.team||{}).name||'主队')}</th><th>项目</th><th>${esc((right.team||{}).name||'客队')}</th></tr></thead><tbody>${keys.map(k=>`<tr><td>${esc(leftStats.get(k)??'-')}</td><td>${esc(k)}</td><td>${esc(rightStats.get(k)??'-')}</td></tr>`).join('')}</tbody></table>`;
 }
+function historicalStatsHtml(data){
+  const payload=apiResponse(data,'historical_stats');
+  if(!payload.stats)return `<div class="detail-note">${currentLang==='en'?'No historical stats synced yet':'历史统计暂未同步'}</div>`;
+  const s=payload.stats||{},ft=s.full_time||{},ht=s.half_time||{},ms=s.match_stats||{};
+  const rows=[
+    [currentLang==='en'?'Source':'来源', payload.provider||'football-data.co.uk'],
+    [currentLang==='en'?'Full time':'全场比分', `${ft.home_goals??'-'} - ${ft.away_goals??'-'} ${ft.result||''}`],
+    [currentLang==='en'?'Half time':'半场比分', `${ht.home_goals??'-'} - ${ht.away_goals??'-'} ${ht.result||''}`],
+    [currentLang==='en'?'Shots':'射门', `${ms.home_shots??'-'} - ${ms.away_shots??'-'}`],
+    [currentLang==='en'?'Shots on target':'射正', `${ms.home_shots_on_target??'-'} - ${ms.away_shots_on_target??'-'}`],
+    [currentLang==='en'?'Corners':'角球', `${ms.home_corners??'-'} - ${ms.away_corners??'-'}`],
+    [currentLang==='en'?'Cards':'黄/红牌', `${ms.home_yellow_cards??'-'}/${ms.home_red_cards??'-'} - ${ms.away_yellow_cards??'-'}/${ms.away_red_cards??'-'}`],
+  ];
+  return detailRows(rows);
+}
 function lineupsHtml(data){
   const payload=apiResponse(data,'lineups');
   const rows=payload.response||payload.lineup||[];
@@ -425,6 +440,7 @@ function renderDetail(m,data){
     <div class="detail-box"><h3>${t('aiInfo')}</h3>${analysisHtml(data.analysisResults,m)}</div>
     <div class="detail-box"><h3>${t('historyInfo')}</h3>${snapshotsHtml(data.recentOddsBatch||data.oddsSnapshots)}</div>
     <div class="detail-box wide"><h3>${currentLang==='en'?'Official Public Reference':'官方公开参考'}</h3>${officialMarketHtml(data)}</div>
+    <div class="detail-box wide"><h3>${currentLang==='en'?'Historical Data':'历史数据'}</h3>${historicalStatsHtml(data)}</div>
     <div class="detail-box wide"><h3>赛况事件</h3>${eventsHtml(data)}</div>
     <div class="detail-box wide"><h3>技术统计</h3>${statisticsHtml(data)}</div>
     <div class="detail-box wide"><h3>阵容</h3>${lineupsHtml(data)}</div>`;
