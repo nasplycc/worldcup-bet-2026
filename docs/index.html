@@ -306,7 +306,12 @@ function multiOddsBox(m){
 }
 function snapshotsHtml(items){
   if(!items||!items.length)return `<div class="detail-note">${t('noHistory')}</div>`;
-  const rows=items.slice(0,12).map(s=>{
+  const seen=new Map();
+  for(const s of items){
+    const key=`${s.market}|${s.selection}|${s.point||''}|${s.source||''}|${s.bookmaker||''}`;
+    if(!seen.has(key)||String(s.capturedAt||'')>String(seen.get(key).capturedAt||''))seen.set(key,s);
+  }
+  const rows=[...seen.values()].slice(0,12).map(s=>{
     const market=esc(localizeMarket(s.market));
     const selection=esc(localizeSelection(s.selection));
     const price=Number(s.price).toFixed(2);

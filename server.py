@@ -121,6 +121,30 @@ def fetch_api_football_with_cache(key, url, ttl=CACHE_TTL):
         return None
 
 
+def fetch_api_football_fixtures(league_key):
+    cfg = league_odds_config(league_key)
+    league = cfg.get("api_football_league")
+    season = cfg.get("api_football_season")
+    if not API_FOOTBALL_KEY or not league or not season:
+        return {}
+    url = f"{API_FOOTBALL_BASE}/fixtures?league={league}&season={season}"
+    data = fetch_api_football_with_cache(f"api_football_fixtures_{league}_{season}", url, ttl=3600)
+    if not isinstance(data, dict):
+        return {}
+
+    fixtures = {}
+    for item in data.get("response", []):
+        fixture = item.get("fixture") or {}
+        teams = item.get("teams") or {}
+        home = (teams.get("home") or {}).get("name", "")
+        away = (teams.get("away") or {}).get("name", "")
+        date = match_date_key(fixture.get("date", ""))
+        if not home or not away or not date:
+            continue
+        fixtures[odds_team_key(home, away, date)] = item
+    return fixtures
+
+
 @app.route("/")
 def index():
     return send_from_directory("docs", "index.html")
@@ -320,6 +344,16 @@ def map_status(status):
         "POSTPONED": "postponed", "SUSPENDED": "postponed", "CANCELLED": "cancelled",
     }
     return m.get(status, "upcoming")
+
+
+def map_api_football_status(short_status):
+    m = {
+        "TBD": "upcoming", "NS": "upcoming",
+        "1H": "live", "HT": "ht", "2H": "live", "ET": "live", "BT": "live", "P": "live",
+        "FT": "finished", "AET": "finished", "PEN": "finished",
+        "PST": "postponed", "CANC": "cancelled", "ABD": "cancelled", "AWD": "finished", "WO": "finished",
+    }
+    return m.get(str(short_status or "").upper(), "")
 
 
 def cst_now():
@@ -526,6 +560,7 @@ def load_epl_frontend_payload():
             },
         })
 
+    enrich_fixture_details(matches, "epl")
     attach_odds(matches, "epl")
     upsert_matches_from_frontend(matches, "epl", "2025", "football-data.org")
     return {
@@ -591,6 +626,7 @@ def load_openfootball_epl_payload(date_from, date_to, fallback_reason=""):
             },
         })
 
+    enrich_fixture_details(matches, "epl")
     attach_odds(matches, "epl")
     upsert_matches_from_frontend(matches, "epl", "2025", "openfootball")
     return {
@@ -794,6 +830,54 @@ def fetch_league_odds(league_key):
     if odds:
         return odds
     return fetch_api_football_odds(league_key)
+
+
+def enrich_fixture_details(matches, league_key):
+    fixtures = fetch_api_football_fixtures(league_key)
+    if not fixtures:
+        return matches
+    for match in matches:
+        key = odds_team_key(
+            match.get("homeFull") or match.get("homeName") or match.get("home"),
+            match.get("awayFull") or match.get("awayName") or match.get("away"),
+            match.get("date", ""),
+        )
+        item = fixtures.get(key)
+        if not item:
+            continue
+        fixture = item.get("fixture") or {}
+        venue = fixture.get("venue") or {}
+        status = fixture.get("status") or {}
+        goals = item.get("goals") or {}
+        teams = item.get("teams") or {}
+        home_team = teams.get("home") or {}
+        away_team = teams.get("away") or {}
+        dt = fixture.get("date")
+        if dt:
+            try:
+                cst = datetime.fromisoformat(dt.replace("Z", "+00:00")).astimezone(timezone(timedelta(hours=8)))
+                match["date"] = cst.strftime("%Y-%m-%d")
+                match["time"] = cst.strftime("%H:%M")
+            except Exception:
+                pass
+        if home_team.get("name"):
+            match["homeFull"] = home_team.get("name")
+        if away_team.get("name"):
+            match["awayFull"] = away_team.get("name")
+        if venue.get("name"):
+            match["venue"] = venue.get("name")
+        if venue.get("city"):
+            match["city"] = venue.get("city")
+        mapped_status = map_api_football_status(status.get("short"))
+        if mapped_status:
+            match["status"] = mapped_status
+        if goals.get("home") is not None:
+            match["scoreH"] = goals.get("home")
+        if goals.get("away") is not None:
+            match["scoreW"] = goals.get("away")
+        match["fixtureSource"] = "api-football"
+        match["fixtureId"] = fixture.get("id")
+    return matches
 
 
 def attach_odds(matches, league_key):
@@ -1258,12 +1342,20 @@ def recent_snapshot_batch(snapshot_rows):
     latest = max((row.captured_at for row in snapshot_rows if row.captured_at), default=None)
     if not latest:
         return []
-    cutoff = latest - timedelta(minutes=5)
-    return [
-        odds_snapshot_payload(row)
-        for row in snapshot_rows
-        if row.captured_at and row.captured_at >= cutoff
-    ][:30]
+    latest_minute = latest.replace(second=0, microsecond=0)
+    deduped = {}
+    for row in snapshot_rows:
+        if not row.captured_at or row.captured_at.replace(second=0, microsecond=0) != latest_minute:
+            continue
+        key = (row.source, row.bookmaker, row.market, row.selection, row.point)
+        existing = deduped.get(key)
+        if not existing or row.captured_at >= existing.captured_at:
+            deduped[key] = row
+    rows = sorted(
+        deduped.values(),
+        key=lambda row: (row.market, row.selection, row.source, row.bookmaker),
+    )
+    return [odds_snapshot_payload(row) for row in rows][:30]
 
 
 def analysis_payload(row, plan="free"):

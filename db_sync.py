@@ -44,6 +44,8 @@ def upsert_matches_from_frontend(matches: list[dict[str, Any]], competition_key:
             }
             if existing:
                 for key, value in payload.items():
+                    if key in {"venue", "city", "home_team_name", "away_team_name"} and not value:
+                        continue
                     setattr(existing, key, value)
             else:
                 session.add(Match(**payload))
